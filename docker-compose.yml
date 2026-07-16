@@ -1,0 +1,94 @@
+services:
+  # === INFRASTRUCTURE ===
+  # zookeeper:
+  #   image: confluentinc/cp-zookeeper:7.5.0
+  #   environment:
+  #     ZOOKEEPER_CLIENT_PORT: 2181
+  #   volumes:
+  #     - zk_data:/var/lib/zookeeper/data
+
+  # kafka:
+  #   image: confluentinc/cp-kafka:7.5.0
+  #   depends_on: [zookeeper]
+  #   ports: ["9092:9092"]
+  #   environment:
+  #     KAFKA_BROKER_ID: 1
+  #     KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+  #     KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+  #     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+  #     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  #   volumes:
+  #     - kafka_data:/var/lib/kafka/data
+  #     - ./kafka/init-topics.sh:/usr/bin/init-topics.sh
+  #   command: "bash -c '/usr/bin/init-topics.sh & /etc/confluent/docker/run'"
+
+  db-auth:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: db-auth
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5433:5432"]
+    # volumes: [pg_auth_data:/var/lib/postgresql/data]
+
+  db-crm:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: db-crm
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5432:5432"]
+    # volumes: [pg_auth_data:/var/lib/postgresql/data]
+
+  # db-customers:
+  #   image: postgres:18
+  #   environment:
+  #     POSTGRES_DB: customers_db
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #   ports: ["5432:5432"]
+    # volumes: [pg_auth_data:/var/lib/postgresql/data]
+
+  # === SERVICES ===
+  service-auth:
+    build: ./services/service-auth
+    ports: ["8002:8000"]
+    env_file: ./services/service-auth/.env
+    depends_on: [db-auth]
+    restart: unless-stopped
+
+  service-crm:
+    build: ./services/service-crm
+    ports: ["8001:8000"]
+    env_file: ./services/service-crm/.env
+    depends_on: [db-crm]
+    restart: unless-stopped
+
+  # service-customers:
+  #   build: ./services/service-customers
+  #   ports: ["8003:8000"]
+  #   env_file: ./services/service-customers/.env
+  #   depends_on: [db-customers]
+  #   restart: unless-stopped
+
+  # === FRONTEND ===
+  # frontend:
+  #   build: 
+  #     context: ./frontend
+  #     target: development  # Multi-stage build
+  #   ports: ["3000:3000"]
+  #   volumes: ["./frontend/src:/app/src"]  # Hot reload
+  #   depends_on: [nginx]
+
+  # === GATEWAY ===
+  nginx:
+    image: nginx
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on: [service-auth, service-crm]
+
+# volumes:
+  # zk_data:
+  # kafka_data:
+  # ...
