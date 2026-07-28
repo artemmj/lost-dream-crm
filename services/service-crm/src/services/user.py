@@ -148,6 +148,15 @@ class UserService:
         updated_dict = await self.user_dao.get_by_id(user_id)
         return UserResponseDTO(**updated_dict)
 
+    async def activate_user(self, user_id: int) -> UserResponseDTO:
+        """Активация пользователя"""
+        user_dict = await self.user_dao.get_by_id(user_id)
+        if not user_dict:
+            raise UserNotFoundError(f"User with id {user_id} not found")
+        await self.user_dao.activate_user(user_id)
+        updated_dict = await self.user_dao.get_by_id(user_id)
+        return UserResponseDTO(**updated_dict)
+
     async def delete_user(self, user_id: int) -> None:
         """Удаление пользователя"""
         user = await self.user_dao.get_obj_by_id(user_id)

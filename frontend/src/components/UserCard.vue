@@ -14,6 +14,7 @@
             </div>
         </div>
         <div class="user-card__actions">
+            <!-- Кнопка деактивации (если активен) -->
             <button 
                 v-if="user.is_active"
                 class="btn btn--small btn--danger"
@@ -21,6 +22,16 @@
             >
                 Deactivate
             </button>
+            
+            <!-- Кнопка активации (если неактивен) -->
+            <button 
+                v-else
+                class="btn btn--small btn--activate"
+                @click="$emit('activate', user.id)"
+            >
+                Activate
+            </button>
+            
             <button class="btn btn--small" @click="$emit('edit', user)">
                 Edit
             </button>
@@ -38,7 +49,7 @@ const props = defineProps({
     },
 })
 
-defineEmits(['edit', 'deactivate'])
+defineEmits(['edit', 'deactivate', 'activate'])
 
 const initials = computed(() => {
     return `${props.user.first_name?.[0] || ''}${props.user.last_name?.[0] || ''}`.toUpperCase()
@@ -77,6 +88,10 @@ const initials = computed(() => {
     font-weight: 600;
     font-size: 14px;
     flex-shrink: 0;
+}
+
+.user-card--inactive .user-card__avatar {
+    background: #9ca3af;
 }
 
 .user-card__info {
@@ -160,12 +175,21 @@ const initials = computed(() => {
     background: #fecaca;
 }
 
-.btn--small:not(.btn--danger) {
+.btn--activate {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.btn--activate:hover {
+    background: #a7f3d0;
+}
+
+.btn--small:not(.btn--danger):not(.btn--activate) {
     background: #e0e7ff;
     color: #3730a3;
 }
 
-.btn--small:not(.btn--danger):hover {
+.btn--small:not(.btn--danger):not(.btn--activate):hover {
     background: #c7d2fe;
 }
 </style>

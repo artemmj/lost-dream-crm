@@ -180,6 +180,18 @@ async def deactivate_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
+@router.post("/{user_id}/activate", response_model=UserResponse)
+async def activate_user(
+    user_id: int,
+    user_service: UserService = Depends(get_user_service),
+):
+    """Активация пользователя."""
+    try:
+        return await user_service.activate_user(user_id)
+    except UserNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
 # ===== Специализированные endpoints =====
 
 

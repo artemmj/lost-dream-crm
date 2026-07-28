@@ -1,15 +1,14 @@
 <template>
     <div class="user-list">
         <div class="user-list__header">
-            <h2>Users</h2>
+            <h2>Users (CRM)</h2>
             <div class="user-list__filters">
                 <select v-model="filterActive" @change="loadUsers">
-                    <option :value="null">All users</option>
-                    <option :value="true">Active</option>
-                    <option :value="false">Inactive</option>
+                <option :value="null">All users</option>
+                <option :value="true">Active</option>
+                <option :value="false">Inactive</option>
                 </select>
             </div>
-            <span class="badge">Microservice: /api/v1/customers</span>
         </div>
 
         <div v-if="loading" class="user-list__loading">Loading...</div>
@@ -26,6 +25,7 @@
                 :user="user"
                 @edit="handleEdit"
                 @deactivate="handleDeactivate"
+                @activate="handleActivate"
             />
         </div>
 
@@ -55,7 +55,6 @@ const currentPage = ref(1)
 const perPage = ref(10)
 const filterActive = ref(null)
 
-// Используем composable для загрузки
 const { loading, error, execute: apiExecute } = useApi(usersApi.getUsers)
 
 async function loadUsers() {
@@ -73,7 +72,7 @@ async function loadUsers() {
         users.value = data.users
         total.value = data.total
     } catch (err) {
-        // Ошибка уже обработана в useApi
+        // handled by useApi
     }
 }
 
@@ -95,6 +94,17 @@ async function handleDeactivate(userId) {
         await loadUsers()
     } catch (err) {
         console.error('Failed to deactivate user:', err)
+        alert('Failed to deactivate user')
+    }
+}
+
+async function handleActivate(userId) {
+    try {
+        await usersApi.activateUser(userId)
+        await loadUsers()
+    } catch (err) {
+        console.error('Failed to activate user:', err)
+        alert('Failed to activate user')
     }
 }
 
@@ -104,7 +114,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Стили без изменений */
 .user-list { max-width: 800px; margin: 0 auto; }
 .user-list__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
 .user-list__header h2 { margin: 0; font-size: 24px; color: #1f2937; }
@@ -113,5 +122,4 @@ onMounted(() => {
 .user-list__loading, .user-list__error, .user-list__empty { text-align: center; padding: 48px 24px; color: #6b7280; font-size: 16px; }
 .user-list__error { color: #991b1b; }
 .user-list__error button { margin-left: 8px; padding: 4px 12px; border: 1px solid #991b1b; border-radius: 4px; background: white; color: #991b1b; cursor: pointer; }
-.badge { background: #e0e7ff; color: #3730a3; padding: 4px 10px; border-radius: 12px; font-size: 12px; }
 </style>

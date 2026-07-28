@@ -36,4 +36,8 @@ export const usersApi = {
     checkEmails(emails) {
         return crmApiClient.post('/users/check-emails', { emails })
     },
+
+    activateUser(id) {
+        return crmApiClient.post(`/users/${id}/activate`)
+    },
 }

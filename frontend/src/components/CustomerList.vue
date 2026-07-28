@@ -2,7 +2,6 @@
     <div class="customer-list">
         <div class="customer-list__header">
             <h2>Customers</h2>
-            <span class="badge">Microservice: /api/v1/customers</span>
         </div>
 
         <div v-if="loading" class="customer-list__loading">Loading...</div>
@@ -76,5 +75,4 @@ onMounted(() => {
 .customer-card { padding: 16px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; }
 .customer-list__loading, .customer-list__error, .customer-list__empty { text-align: center; padding: 48px; color: #6b7280; }
 .customer-list__error { color: #991b1b; }
-.badge { background: #e0e7ff; color: #3730a3; padding: 4px 10px; border-radius: 12px; font-size: 12px; }
 </style>

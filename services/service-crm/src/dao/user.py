@@ -63,6 +63,13 @@ class UserDAO(BaseDAO[User]):
                 update(User).where(User.id == user_id).values(is_active=False)
             )
 
+    async def activate_user(self, user_id: int) -> None:
+        """Деактивация пользователя"""
+        async with self.db.session_scope() as session:
+            await session.execute(
+                update(User).where(User.id == user_id).values(is_active=True)
+            )
+
     # ЗАГОТОВКА: если нужен метод, возвращающий объект User (для update/delete)
     async def get_obj_by_id(self, id: int) -> Optional[User]:
         """Получение ORM объекта (для операций update/delete)"""
