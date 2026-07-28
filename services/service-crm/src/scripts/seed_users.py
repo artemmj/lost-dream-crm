@@ -9,11 +9,6 @@ from typing import List
 
 from src.dependencies.db_dependency import DBDependency
 from src.dao.user import UserDAO
-from src.services.user import (
-    UserService,
-    UserCreateDTO,
-    UserAlreadyExistsError,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -172,10 +167,12 @@ async def seed_users(force: bool = False) -> dict:
                     logger.debug(f"User already exists: {user_data['email']}")
                     continue
 
-            # Создаём пользователя напрямую через DAO (без Service слоя)
-            user = await user_dao.create(**user_data)
-            created.append(user.email)
-            logger.info(f"✅ Created: {user.email} (ID: {user.id})")
+            # Создаём пользователя — теперь возвращается словарь
+            user_dict = await user_dao.create(**user_data)
+
+            # Работаем со словарём, не с объектом
+            created.append(user_dict["email"])
+            logger.info(f"✅ Created: {user_dict['email']} (ID: {user_dict['id']})")
 
         except Exception as e:
             failed.append({"email": user_data["email"], "error": str(e)})
@@ -183,7 +180,7 @@ async def seed_users(force: bool = False) -> dict:
 
     # Вывод статистики
     logger.info("=" * 50)
-    logger.info(f"Seed completed:")
+    logger.info("Seed completed:")
     logger.info(f"  ✅ Created: {len(created)}")
     logger.info(f"  ⏭️  Skipped: {len(skipped)}")
     logger.info(f"  ❌ Failed: {len(failed)}")
@@ -196,11 +193,11 @@ async def seed_users(force: bool = False) -> dict:
 
     # Выводим тестовые аккаунты для входа
     logger.info("\n📋 Test accounts for login:")
-    logger.info(f"  Superuser: admin@crm.local / admin123")
-    logger.info(f"  Active: john.doe@example.com / admin123")
-    logger.info(f"  Inactive: inactive@crm.local / admin123")
-    logger.info(f"  Banned: banned@crm.local / admin123")
-    logger.info(f"  Unverified: unverified@crm.local / admin123")
+    logger.info("  Superuser: admin@crm.local / admin123")
+    logger.info("  Active: john.doe@example.com / admin123")
+    logger.info("  Inactive: inactive@crm.local / admin123")
+    logger.info("  Banned: banned@crm.local / admin123")
+    logger.info("  Unverified: unverified@crm.local / admin123")
 
     return {
         "created": len(created),

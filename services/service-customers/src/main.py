@@ -1,5 +1,7 @@
 from fastapi import FastAPI, APIRouter
 
+from src.routes.customer import router as customers_router
+
 app = FastAPI(
     title="CUSTOMERS Service",
     root_path="/api/v1/customers",
@@ -16,3 +18,4 @@ async def health():
 
 
 app.include_router(router)
+app.include_router(customers_router)

@@ -7,7 +7,7 @@
                     :class="{ active: currentView === 'users' }"
                     @click="currentView = 'users'"
                 >
-                    Users (CRM)
+                    Users
                 </button>
                 <button 
                     :class="{ active: currentView === 'customers' }"
