@@ -9,7 +9,6 @@ from src.services.user import (
     UserService,
     UserCreateDTO,
     UserUpdateDTO,
-    UserResponseDTO,
     UserAlreadyExistsError,
     UserNotFoundError,
 )

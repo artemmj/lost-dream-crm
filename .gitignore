@@ -219,3 +219,5 @@ __marimo__/
 
 .vscode
 .vscode/
+
+node_modules
