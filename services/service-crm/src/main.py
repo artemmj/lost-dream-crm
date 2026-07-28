@@ -1,5 +1,7 @@
 from fastapi import FastAPI, APIRouter
 
+from src.routes.user import router as users_router
+
 app = FastAPI(
     title="CRM Service",
     root_path="/api/v1/crm",
@@ -16,3 +18,4 @@ async def health():
 
 
 app.include_router(router)
+app.include_router(users_router)

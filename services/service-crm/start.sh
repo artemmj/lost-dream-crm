@@ -15,5 +15,20 @@ until uv run alembic upgrade head; do
     sleep 1
 done
 
+echo "(CRM-APP) ✅ Migrations completed successfully!"
+
+# ===== Создание тестовых пользователей =====
+
+echo "(CRM-APP) 🌱 Creating test users..."
+
+# Используем Python скрипт для создания тестовых данных
+uv run python -m src.scripts.seed_users || {
+    echo "(CRM-APP) ⚠️  Warning: Seed script failed, but continuing..."
+}
+
+echo "(CRM-APP) ✅ Test users created (or already existed)"
+
+# ===== Запуск приложения =====
+
 echo "(CRM-APP) 🚀 Starting FastAPI..."
-exec uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers 1
+exec uv run uvicorn src.main:app --host 0.0.0.0 --port 8000
