@@ -22,15 +22,6 @@ services:
   #     - ./kafka/init-topics.sh:/usr/bin/init-topics.sh
   #   command: "bash -c '/usr/bin/init-topics.sh & /etc/confluent/docker/run'"
 
-  db-auth:
-    image: postgres:18
-    environment:
-      POSTGRES_DB: db-auth
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports: ["5433:5432"]
-    # volumes: [pg_auth_data:/var/lib/postgresql/data]
-
   db-crm:
     image: postgres:18
     environment:
@@ -39,6 +30,14 @@ services:
       POSTGRES_PASSWORD: postgres
     ports: ["5432:5432"]
     # volumes: [pg_auth_data:/var/lib/postgresql/data]
+
+  db-customers:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: db-customers
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5433:5432"]
 
   # db-customers:
   #   image: postgres:18
@@ -50,13 +49,6 @@ services:
     # volumes: [pg_auth_data:/var/lib/postgresql/data]
 
   # === SERVICES ===
-  service-auth:
-    build: ./services/service-auth
-    ports: ["8002:8000"]
-    env_file: ./services/service-auth/.env
-    depends_on: [db-auth]
-    restart: unless-stopped
-
   service-crm:
     build: ./services/service-crm
     ports: ["8001:8000"]
@@ -64,12 +56,18 @@ services:
     depends_on: [db-crm]
     restart: unless-stopped
 
-  # service-customers:
-  #   build: ./services/service-customers
-  #   ports: ["8003:8000"]
-  #   env_file: ./services/service-customers/.env
-  #   depends_on: [db-customers]
-  #   restart: unless-stopped
+  service-auth:
+    build: ./services/service-auth
+    ports: ["8002:8000"]
+    env_file: ./services/service-auth/.env
+    restart: unless-stopped
+
+  service-customers:
+    build: ./services/service-customers
+    ports: ["8003:8000"]
+    env_file: ./services/service-customers/.env
+    depends_on: [db-customers]
+    restart: unless-stopped
 
   # === FRONTEND ===
   # frontend:
@@ -82,7 +80,7 @@ services:
 
   # === GATEWAY ===
   nginx:
-    image: nginx
+    image: nginx:1.27-alpine
     ports: ["80:80", "443:443"]
     volumes:
       - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro

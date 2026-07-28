@@ -10,11 +10,6 @@ app = FastAPI(
 router = APIRouter()
 
 
-@router.post("/login")
-async def login():
-    return {"message": "Successfully access!", "service": "auth"}
-
-
 @router.get("/health")
 async def health():
     return {"status": "ok"}

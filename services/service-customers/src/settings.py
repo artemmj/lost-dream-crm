@@ -3,11 +3,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class DBSettings(BaseSettings):
-    db_name: str = Field(default="db-crm", alias="POSTGRES_DB_NAME")
+    db_name: str = Field(default="db-customers", alias="POSTGRES_DB_NAME")
     db_user: str = Field(default="postgres", alias="POSTGRES_USER")
     db_password: SecretStr = Field(default="postgres", alias="POSTGRES_PASSWORD")
     db_host: str = Field(default="localhost", alias="POSTGRES_HOST")
-    db_port: int = Field(default=5432, alias="POSTGRES_PORT")
+    db_port: int = Field(default=5433, alias="POSTGRES_PORT")
     db_echo: bool = Field(default=True, alias="POSTGRES_ECHO")
 
     model_config = SettingsConfigDict(

@@ -1,8 +1,8 @@
 from fastapi import FastAPI, APIRouter
 
 app = FastAPI(
-    title="AUTH Service",
-    root_path="/api/v1/auth",
+    title="CUSTOMERS Service",
+    root_path="/api/v1/customers",
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
