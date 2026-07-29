@@ -1,12 +1,12 @@
 <template>
     <div class="user-list">
         <div class="user-list__header">
-            <h2>Users (CRM)</h2>
+            <h2>Пользователи (CRM)</h2>
             <div class="user-list__filters">
                 <select v-model="filterActive" @change="loadUsers">
-                <option :value="null">All users</option>
-                <option :value="true">Active</option>
-                <option :value="false">Inactive</option>
+                    <option :value="null">All users</option>
+                    <option :value="true">Active</option>
+                    <option :value="false">Inactive</option>
                 </select>
             </div>
         </div>
@@ -26,6 +26,7 @@
                 @edit="handleEdit"
                 @deactivate="handleDeactivate"
                 @activate="handleActivate"
+                @delete="handleDelete"
             />
         </div>
 
@@ -39,6 +40,14 @@
             :per-page="perPage"
             @page-change="changePage"
         />
+
+        <!-- Модальное окно редактирования -->
+        <UserEditModal 
+            :is-visible="isModalOpen" 
+            :user="selectedUser" 
+            @close="isModalOpen = false"
+            @saved="handleUserSaved" 
+        />
     </div>
 </template>
 
@@ -48,12 +57,17 @@ import { usersApi } from '@/api'
 import { useApi } from '@/composables/useApi'
 import UserCard from './UserCard.vue'
 import Pagination from './Pagination.vue'
+import UserEditModal from './UserEditModal.vue' // Импортируем модалку
 
 const users = ref([])
 const total = ref(0)
 const currentPage = ref(1)
 const perPage = ref(10)
 const filterActive = ref(null)
+
+// Состояние модального окна
+const isModalOpen = ref(false)
+const selectedUser = ref(null)
 
 const { loading, error, execute: apiExecute } = useApi(usersApi.getUsers)
 
@@ -81,9 +95,15 @@ function changePage(page) {
     loadUsers()
 }
 
+// Открытие модалки
 function handleEdit(user) {
-    console.log('Edit user:', user)
-    alert(`Edit ${user.first_name} ${user.last_name} — coming soon`)
+    selectedUser.value = user
+    isModalOpen.value = true
+}
+
+// После успешного сохранения в модалке
+function handleUserSaved() {
+    loadUsers() // Перезагружаем список, чтобы увидеть изменения
 }
 
 async function handleDeactivate(userId) {
@@ -105,6 +125,18 @@ async function handleActivate(userId) {
     } catch (err) {
         console.error('Failed to activate user:', err)
         alert('Failed to activate user')
+    }
+}
+
+async function handleDelete(userId) {
+    if (!confirm('Вы уверены, что хотите удалить этого пользователя? Это действие нельзя отменить.')) return
+    
+    try {
+        await usersApi.deleteUser(userId)
+        await loadUsers() // Обновляем список после удаления
+    } catch (err) {
+        console.error('Failed to delete user:', err)
+        alert('Не удалось удалить пользователя')
     }
 }
 

@@ -1,7 +1,7 @@
 <template>
     <div class="auth-page">
         <div class="auth-card">
-            <h2 class="auth-card__title">CRM System</h2>
+            <h2 class="auth-card__title">Lost Dream CRM</h2>
 
             <!-- Переключатель Логин / Регистрация -->
             <div class="auth-card__tabs">
@@ -36,6 +36,7 @@
                         v-model="loginForm.email"
                         type="email"
                         placeholder="test@test.com"
+                        default="test@test.com"
                         required
                     />
                 </label>
@@ -46,6 +47,7 @@
                         v-model="loginForm.password"
                         type="password"
                         placeholder="••••••••"
+                        default="testtest"
                         required
                     />
                 </label>

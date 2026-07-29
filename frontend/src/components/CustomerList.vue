@@ -1,7 +1,7 @@
 <template>
     <div class="customer-list">
         <div class="customer-list__header">
-            <h2>Customers (Customers)</h2>
+            <h2>Клиенты (Customers)</h2>
         </div>
 
         <div v-if="loading" class="customer-list__loading">Loading...</div>

@@ -83,7 +83,7 @@ class UserDAO(BaseDAO[User]):
     # ЗАГОТОВКА: если нужен метод, возвращающий объект User (для update/delete)
     async def get_obj_by_id(self, id: int) -> Optional[User]:
         """Получение ORM объекта (для операций update/delete)"""
-        async with self.db.read_only_scope() as session:
+        async with self.db.session_scope() as session:
             result = await session.execute(
                 select(self.model).where(self.model.id == id)
             )

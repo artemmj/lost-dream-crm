@@ -1,12 +1,7 @@
 <template>
     <div class="dashboard">
         <section class="dashboard__welcome">
-            <h2 class="dashboard__title">
-                Добро пожаловать, {{ authStore.currentUser?.first_name }}! 👋
-            </h2>
-            <p class="dashboard__subtitle">
-                Выберите раздел в меню выше для начала работы с CRM системой.
-            </p>
+            <h2 class="dashboard__title">Добро пожаловать!</h2>
         </section>
 
         <div class="dashboard__grid">
@@ -57,7 +52,6 @@ function goToCustomers() {
 /* Стили остаются прежними */
 .dashboard__welcome { margin-bottom: 32px; }
 .dashboard__title { font-size: 28px; font-weight: 700; color: #111827; margin-bottom: 8px; }
-.dashboard__subtitle { font-size: 16px; color: #6b7280; }
 .dashboard__grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px;
 }
@@ -66,7 +60,7 @@ function goToCustomers() {
     display: flex; flex-direction: column; gap: 12px; transition: box-shadow 0.2s, transform 0.2s;
 }
 .dashboard__card:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); transform: translateY(-2px); }
-.dashboard__card--placeholder { opacity: 0.6; pointer-events: none; }
+.dashboard__card--placeholder { opacity: 0.8; pointer-events: none; }
 .dashboard__card-icon { font-size: 32px; }
 .dashboard__card-title { font-size: 18px; font-weight: 600; color: #1f2937; }
 .dashboard__card-desc { font-size: 14px; color: #6b7280; line-height: 1.5; flex: 1; }

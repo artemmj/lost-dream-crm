@@ -11,7 +11,7 @@
                     @click="router.push('/')"
                     style="cursor: pointer;"
                 >
-                    CRM System
+                    Lost Dream CRM
                 </h1>
 
                 <nav class="app__nav">

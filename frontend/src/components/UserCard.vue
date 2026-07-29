@@ -7,10 +7,10 @@
             <div class="user-card__name">{{ user.first_name }} {{ user.last_name }}</div>
             <div class="user-card__email">{{ user.email }}</div>
             <div class="user-card__badges">
-                <span v-if="user.is_superuser" class="badge badge--superuser">Admin</span>
-                <span v-if="user.is_verified" class="badge badge--verified">Verified</span>
-                <span v-if="user.is_banned" class="badge badge--banned">Banned</span>
-                <span v-if="!user.is_active" class="badge badge--inactive">Inactive</span>
+                <span v-if="user.is_superuser" class="badge badge--superuser">Админ</span>
+                <span v-if="user.is_verified" class="badge badge--verified">Верифицирован</span>
+                <span v-if="user.is_banned" class="badge badge--banned">Забанен</span>
+                <span v-if="!user.is_active" class="badge badge--inactive">Неактивен</span>
             </div>
         </div>
         <div class="user-card__actions">
@@ -20,7 +20,7 @@
                 class="btn btn--small btn--danger"
                 @click="$emit('deactivate', user.id)"
             >
-                Deactivate
+                Деактивировать
             </button>
             
             <!-- Кнопка активации (если неактивен) -->
@@ -29,11 +29,15 @@
                 class="btn btn--small btn--activate"
                 @click="$emit('activate', user.id)"
             >
-                Activate
+                Активировать
             </button>
             
             <button class="btn btn--small" @click="$emit('edit', user)">
-                Edit
+                ✏️
+            </button>
+
+            <button class="btn btn--delete" @click="$emit('delete', user.id)">
+                🗑️
             </button>
         </div>
     </div>
@@ -49,7 +53,7 @@ const props = defineProps({
     },
 })
 
-defineEmits(['edit', 'deactivate', 'activate'])
+defineEmits(['edit', 'deactivate', 'activate', 'delete'])
 
 const initials = computed(() => {
     return `${props.user.first_name?.[0] || ''}${props.user.last_name?.[0] || ''}`.toUpperCase()
@@ -191,5 +195,17 @@ const initials = computed(() => {
 
 .btn--small:not(.btn--danger):not(.btn--activate):hover {
     background: #c7d2fe;
+}
+
+.btn--delete {
+    background-color: #fee2e2; /* Светло-красный фон */
+    color: #dc2626;            /* Темно-красный текст/иконка */
+    border: 1px solid #fca5a5;
+}
+
+.btn--delete:hover {
+    background-color: #dc2626; /* Красный фон при наведении */
+    color: white;              /* Белая иконка */
+    border-color: #dc2626;
 }
 </style>
