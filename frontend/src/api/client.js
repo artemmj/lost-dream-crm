@@ -12,7 +12,6 @@ export function createApiClient(servicePath) {
     client.interceptors.request.use((config) => {
         const token = localStorage.getItem('token')
         if (token) {
-            // Бэк ожидает токен БЕЗ префикса "Bearer"
             config.headers.Authorization = token
         }
         return config
@@ -24,14 +23,12 @@ export function createApiClient(servicePath) {
         (error) => {
             if (error.response?.status === 401) {
                 localStorage.removeItem('token')
-
-                // Не редиректим, если уже на «странице логина»
-                // (в SPA без роутера просто перезагрузим — App.vue покажет AuthPage)
-                const authStore = useAuthStore()
-                authStore.clearLocal?.()  // если экспортировали
-
-                // Или просто:
-                // window.location.reload()
+                // Просто очищаем токен. 
+                // App.vue увидит изменение в localStorage (если использовать событие storage) 
+                // или при следующем рендере check isAuthenticated вернет false.
+                
+                // Для надежности можно перезагрузить страницу, чтобы сбросить все состояния:
+                // window.location.reload() 
             }
             return Promise.reject(error)
         }

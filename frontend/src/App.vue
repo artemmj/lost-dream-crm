@@ -3,23 +3,36 @@
         <!-- ===== Не авторизован → показываем AuthPage ===== -->
         <AuthPage v-if="!authStore.isAuthenticated" />
 
-        <!-- ===== Авторизован → основной интерфейс ===== -->
+        <!-- ===== Авторизован → основной интерфейс с Роутером ===== -->
         <template v-else>
             <header class="app__header">
-                <h1>CRM System</h1>
+                <h1 
+                    class="app__logo" 
+                    @click="router.push('/')"
+                    style="cursor: pointer;"
+                >
+                    CRM System
+                </h1>
 
                 <nav class="app__nav">
+                    <!-- Используем router.push для смены URL -->
                     <button
-                        :class="{ active: currentView === 'users' }"
-                        @click="currentView = 'users'"
+                        :class="{ active: route.path === '/' }"
+                        @click="router.push('/')"
                     >
-                        Users
+                        Главная
                     </button>
                     <button
-                        :class="{ active: currentView === 'customers' }"
-                        @click="currentView = 'customers'"
+                        :class="{ active: route.path.startsWith('/users') }"
+                        @click="router.push('/users')"
                     >
-                        Customers
+                        Пользователи
+                    </button>
+                    <button
+                        :class="{ active: route.path.startsWith('/customers') }"
+                        @click="router.push('/customers')"
+                    >
+                        Клиенты
                     </button>
                 </nav>
 
@@ -39,105 +52,62 @@
             </header>
 
             <main class="app__main">
-                <UserList v-if="currentView === 'users'" />
-                <CustomerList v-else-if="currentView === 'customers'" />
+                <!-- Сюда Роутер будет подставлять компоненты: Dashboard, UserList и т.д. -->
+                <RouterView />
             </main>
         </template>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router' // <--- Импортируем хуки роутера
 import { useAuthStore } from './stores/auth'
 import AuthPage from './components/AuthPage.vue'
-import UserList from './components/UserList.vue'
-import CustomerList from './components/CustomerList.vue'
 
 const authStore = useAuthStore()
-const currentView = ref('users')
+const route = useRoute()   // Текущий маршрут
+const router = useRouter() // Экземпляр роутера для навигации
 
-// При загрузке: если токен в localStorage есть — подтягиваем профиль
 onMounted(() => {
     authStore.init()
 })
 
 async function handleLogout() {
     await authStore.logout()
-    // После clearLocal() isAuthenticated станет false →
-    // Vue автоматически покажет AuthPage
+    // После выхода принудительно кидаем на главную (которая покажет AuthPage)
+    router.push('/')
 }
 </script>
 
 <style>
+/* Твои стили остаются без изменений */
 * { margin: 0; padding: 0; box-sizing: border-box; }
-
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: #f9fafb;
     color: #1f2937;
 }
-
-.app { min-height: 100vh; }
-
+.app { min-height: 100vh; display: flex; flex-direction: column; }
 .app__header {
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    padding: 16px 32px;
-    background: white;
-    border-bottom: 1px solid #e5e7eb;
+    display: flex; align-items: center; gap: 24px; padding: 16px 32px;
+    background: white; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 10;
 }
-
-.app__header h1 { font-size: 20px; color: #4f46e5; }
-
+.app__logo { font-size: 20px; color: #4f46e5; user-select: none; }
 .app__nav { display: flex; gap: 8px; }
-
 .app__nav button {
-    padding: 8px 16px;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    background: white;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s;
+    padding: 8px 16px; border: 1px solid #d1d5db; border-radius: 6px;
+    background: white; cursor: pointer; font-size: 14px; transition: all 0.2s;
 }
-
 .app__nav button:hover { background: #f3f4f6; }
-
-.app__nav button.active {
-    background: #4f46e5;
-    color: white;
-    border-color: #4f46e5;
-}
-
-.app__auth { margin-left: auto; }
-
-.app__auth-placeholder { font-size: 13px; color: #9ca3af; }
-
-.app__main { padding: 32px; }
-
-.app__auth {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.app__auth-user {
-    font-size: 0.9rem;
-    color: #333;
-}
-
+.app__nav button.active { background: #4f46e5; color: white; border-color: #4f46e5; }
+.app__auth { margin-left: auto; display: flex; align-items: center; gap: 0.75rem; }
+.app__auth-user { font-size: 0.9rem; color: #333; font-weight: 500; }
 .app__logout {
-    padding: 0.35rem 0.75rem;
-    background: #d32f2f;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.85rem;
+    padding: 0.35rem 0.75rem; background: #d32f2f; color: #fff; border: none;
+    border-radius: 6px; cursor: pointer; font-size: 0.85rem; transition: background 0.2s;
 }
-
-.app__logout:hover {
-    background: #b71c1c;
-}
+.app__logout:hover:not(:disabled) { background: #b71c1c; }
+.app__logout:disabled { opacity: 0.6; cursor: not-allowed; }
+.app__main { padding: 32px; flex: 1; }
 </style>
