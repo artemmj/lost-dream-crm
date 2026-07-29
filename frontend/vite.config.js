@@ -10,13 +10,16 @@ export default defineConfig({
         }
     },
     server: {
-        port: 5173,
+        port: 3000,
+        host: true, // Слушает все интерфейсы (0.0.0.0)
+        strictPort: false,
         proxy: {
+            // Все запросы к /api перенаправляем на наш Nginx Gateway
             '/api': {
-                target: 'http://localhost:80',  // FastAPI напрямую
+                target: 'http://nginx:80', // 'nginx' - это имя сервиса в docker-compose
                 changeOrigin: true,
-                // Убираем rewrite, пробрасываем как есть
-            }
-        }
-    }
+                secure: false,
+            },
+        },
+    },
 })
