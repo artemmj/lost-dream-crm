@@ -10,7 +10,6 @@ from src.services.customer import (
     CustomerService,
     CustomerCreateDTO,
     CustomerUpdateDTO,
-    CustomerResponseDTO,
     CustomerAlreadyExistsError,
     CustomerNotFoundError,
 )

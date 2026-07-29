@@ -5,7 +5,6 @@
 
 import asyncio
 import logging
-from typing import List
 
 from src.dependencies.db_dependency import DBDependency
 from src.dao.user import UserDAO

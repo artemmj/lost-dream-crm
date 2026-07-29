@@ -25,10 +25,28 @@ class DBSettings(BaseSettings):
         )
 
 
+class RedisSettings(BaseSettings):
+    redis_host: str = Field(default="localhost", alias="REDIS_HOST")
+    redis_port: int = Field(default=6379, alias="REDIS_PORT")
+    redis_db: int = Field(default=0, alias="REDIS_DB")
+
+    model_config = SettingsConfigDict(
+        env_file="../.env",
+        env_file_encoding="utf8",
+        extra="ignore",
+    )
+
+    @property
+    def redis_url(self):
+        return f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}"
+
+
 class Settings(BaseSettings):
     secret_key: SecretStr = Field(default="", alias="SECRET_KEY")
+    access_token_expire: int = Field(default=120, alias="ACCESS_TOKEN_EXPIRE")
 
     db_settings: DBSettings = DBSettings()
+    redis_settings: RedisSettings = RedisSettings()
 
     model_config = SettingsConfigDict(
         env_file="../.env",

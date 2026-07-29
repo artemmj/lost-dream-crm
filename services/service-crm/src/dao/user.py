@@ -13,6 +13,16 @@ class UserDAO(BaseDAO[User]):
     def __init__(self, db: DBDependency):
         super().__init__(db)
 
+    async def confirm(self, email: str) -> None:
+        async with self.db.session_scope() as session:
+            query = (
+                update(self.model)
+                .where(self.model.email == email)
+                .values(is_verified=True, is_active=True)
+            )
+            await session.execute(query)
+            await session.commit()
+
     async def email_exists(self, email: str) -> bool:
         """Проверка существования email"""
         async with self.db.read_only_scope() as session:
@@ -52,7 +62,7 @@ class UserDAO(BaseDAO[User]):
     async def get_active_users(self) -> List[Dict]:
         """Получение всех активных пользователей — возвращает список словарей"""
         async with self.db.read_only_scope() as session:
-            result = await session.execute(select(User).where(User.is_active == True))
+            result = await session.execute(select(User).where(User.is_active is True))
             objects = result.scalars().all()
             return [self._model_to_dict(obj) for obj in objects]
 

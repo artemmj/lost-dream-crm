@@ -1,103 +1,77 @@
-from typing import List, Optional
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, EmailStr, Field
 
-from src.dependencies.db_dependency import DBDependency
-from src.dao.user import UserDAO
+from src.dependencies.auth_dependency import get_current_user
+from src.schemas.user import LoginResponse, UserMeResponse
+from src.schemas.user import (
+    AuthUser,
+    BulkCreateRequest,
+    BulkCreateResponse,
+    EmailCheckRequest,
+    EmailCheckResponse,
+    UserCreateRequest,
+    UserListResponse,
+    UserResponse,
+    UserUpdateRequest,
+)
 from src.services.user import (
     UserService,
-    UserCreateDTO,
-    UserUpdateDTO,
     UserAlreadyExistsError,
     UserNotFoundError,
 )
+from src.dependencies.user_dependency import get_user_service
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-
-class UserCreateRequest(BaseModel):
-    email: EmailStr = Field(..., example="john@example.com")
-    password_hash: str = Field(..., min_length=8)
-    first_name: str = Field(..., min_length=1, max_length=100, example="John")
-    last_name: str = Field(..., min_length=1, max_length=100, example="Doe")
-    is_active: bool = Field(default=True)
-    is_banned: bool = Field(default=False)
-    is_superuser: bool = Field(default=False)
-    is_verified: bool = Field(default=False)
+# @router.get(path="/logout", status_code=status.HTTP_200_OK)
+# async def logout(
+#     user: Annotated[UserVerifySchema, Depends(get_current_user)],
+#     service: UserService = Depends(UserService),
+# ) -> JSONResponse:
+#     return await service.logout_user(user=user)
 
 
-class UserUpdateRequest(BaseModel):
-    email: Optional[EmailStr] = None
-    password_hash: Optional[str] = Field(None, min_length=8)
-    first_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    last_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    is_active: Optional[bool] = None
-    is_banned: Optional[bool] = None
-    is_superuser: Optional[bool] = None
-    is_verified: Optional[bool] = None
-
-
-class UserResponse(BaseModel):
-    id: int
-    email: str
-    first_name: str
-    last_name: str
-    is_active: bool
-    is_banned: bool
-    is_superuser: bool
-    is_verified: bool
-
-    model_config = {"from_attributes": True}
-
-
-class UserListResponse(BaseModel):
-    users: List[UserResponse]
-    total: int
-    page: int
-    per_page: int
-
-
-class BulkCreateRequest(BaseModel):
-    users: List[UserCreateRequest] = Field(..., min_items=1, max_items=100)
-
-
-class BulkCreateResponse(BaseModel):
-    created: int
-    skipped: int
-    skipped_emails: List[str]
-    users: List[UserResponse]
-
-
-class EmailCheckRequest(BaseModel):
-    emails: List[EmailStr] = Field(..., min_items=1, max_items=50)
-
-
-class EmailCheckResponse(BaseModel):
-    emails: dict
-
-
-def get_user_service(db: DBDependency = Depends()) -> UserService:
-    """Фабрика сервиса с правильным графом зависимостей"""
-    user_dao = UserDAO(db)
-    return UserService(user_dao=user_dao)
-
-
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_user(
     request: UserCreateRequest,
     user_service: UserService = Depends(get_user_service),
 ):
     """Регистрация нового пользователя."""
     try:
-        dto = UserCreateDTO(
-            name=request.name,
+        dto = UserCreateRequest(
             email=request.email,
-            is_active=request.is_active,
+            password=request.password,
+            first_name=request.first_name,
+            last_name=request.last_name,
         )
         return await user_service.register_user(dto)
     except UserAlreadyExistsError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+
+
+@router.get(path="/register_confirm", status_code=status.HTTP_200_OK)
+async def confirm_registration(
+    token: str, user_service: UserService = Depends(get_user_service)
+) -> dict[str, str]:
+    await user_service.confirm_user(token=token)
+    return {"message": "Электронная почта подтверждена"}
+
+
+@router.post(
+    path="/login", response_model=LoginResponse, status_code=status.HTTP_200_OK
+)
+async def login(user: AuthUser, service: UserService = Depends(get_user_service)):
+    return await service.login(user=user)
+
+
+@router.get(path="/me", status_code=status.HTTP_200_OK, response_model=UserMeResponse)
+async def me(
+    user: Annotated[UserMeResponse, Depends(get_current_user)],
+) -> UserMeResponse:
+    return user
 
 
 @router.get("/{user_id}", response_model=UserResponse)
@@ -144,10 +118,14 @@ async def update_user(
     Обновляются только переданные поля.
     """
     try:
-        dto = UserUpdateDTO(
-            name=request.name,
+        dto = UserUpdateRequest(
             email=request.email,
+            first_name=request.first_name,
+            last_name=request.last_name,
             is_active=request.is_active,
+            is_banned=request.is_banned,
+            is_superuser=request.is_superuser,
+            is_verified=request.is_verified,
         )
         return await user_service.update_user(user_id, dto)
     except UserNotFoundError as e:
@@ -214,7 +192,12 @@ async def bulk_create_users(
 ):
     """Массовое создание пользователей."""
     dtos = [
-        UserCreateDTO(name=u.name, email=u.email, is_active=u.is_active)
+        UserCreateRequest(
+            email=u.email,
+            password=u.password,
+            first_name=u.first_name,
+            last_name=u.last_name,
+        )
         for u in request.users
     ]
     result = await user_service.bulk_create_users(dtos)

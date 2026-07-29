@@ -22,6 +22,20 @@ services:
   #     - ./kafka/init-topics.sh:/usr/bin/init-topics.sh
   #   command: "bash -c '/usr/bin/init-topics.sh & /etc/confluent/docker/run'"
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    # CHANGED: Redis не должен быть доступен извне в продакшене
+    expose:
+      - "6379"
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   db-crm:
     image: postgres:18
     environment:
@@ -29,7 +43,13 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports: ["5432:5432"]
-    # volumes: [pg_auth_data:/var/lib/postgresql/data]
+    volumes: [pg_crm_data:/var/lib/postgresql]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d db-crm"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   db-customers:
     image: postgres:18
@@ -38,6 +58,14 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports: ["5433:5432"]
+    volumes: [pg_customers_data:/var/lib/postgresql]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d db-customers"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
 
   # db-customers:
   #   image: postgres:18
@@ -53,7 +81,9 @@ services:
     build: ./services/service-crm
     ports: ["8001:8000"]
     env_file: ./services/service-crm/.env
-    depends_on: [db-crm]
+    depends_on:
+      db-crm:
+        condition: service_healthy
     restart: unless-stopped
 
   service-auth:
@@ -66,7 +96,9 @@ services:
     build: ./services/service-customers
     ports: ["8003:8000"]
     env_file: ./services/service-customers/.env
-    depends_on: [db-customers]
+    depends_on:
+      db-customers:
+        condition: service_healthy
     restart: unless-stopped
 
   # === FRONTEND ===
@@ -90,3 +122,7 @@ services:
   # zk_data:
   # kafka_data:
   # ...
+
+volumes:
+  pg_crm_data: {}
+  pg_customers_data: {}

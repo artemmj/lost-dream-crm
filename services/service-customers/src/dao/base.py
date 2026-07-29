@@ -29,7 +29,10 @@ class BaseDAO(Generic[T]):
         """Получение всех — возвращает список словарей"""
         async with self.db.read_only_scope() as session:
             result = await session.execute(
-                select(self.model).limit(limit).offset(offset).order_by(self.model.id.desc())
+                select(self.model)
+                .limit(limit)
+                .offset(offset)
+                .order_by(self.model.id.desc())
             )
             objects = result.scalars().all()
             return [self._model_to_dict(obj) for obj in objects]
