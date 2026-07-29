@@ -2,9 +2,10 @@ from typing import Dict, List, Optional
 import logging
 
 from fastapi import HTTPException, status
+from fastapi.responses import JSONResponse
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 
-from src.schemas.user import LoginResponse
+from src.schemas.user import LoginResponse, UserMeResponse
 from src.dependencies.redis_dependency import RedisDependency
 from src.handlers.auth import AuthHandler
 from src.schemas.user import (
@@ -95,6 +96,13 @@ class UserService:
             token=token, user_id=exist_user["id"], session_id=session_id
         )
         return LoginResponse(access_token=token)
+
+    async def logout_user(self, user: UserMeResponse) -> JSONResponse:
+        await self.revoke_access_token(
+            user_id=user.id, session_id=user.session_id
+        )
+        response = JSONResponse(content={"message": "Logged out"})
+        return response
 
     async def get_user(self, user_id: int) -> UserResponse:
         """Получение пользователя по ID"""

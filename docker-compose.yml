@@ -86,15 +86,9 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  service-auth:
-    build: ./services/service-auth
-    ports: ["8002:8000"]
-    env_file: ./services/service-auth/.env
-    restart: unless-stopped
-
   service-customers:
     build: ./services/service-customers
-    ports: ["8003:8000"]
+    ports: ["8002:8000"]
     env_file: ./services/service-customers/.env
     depends_on:
       db-customers:
@@ -116,7 +110,7 @@ services:
     ports: ["80:80", "443:443"]
     volumes:
       - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on: [service-auth, service-crm]
+    depends_on: [service-crm, service-customers]
 
 # volumes:
   # zk_data:

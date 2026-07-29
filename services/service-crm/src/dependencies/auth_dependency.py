@@ -36,4 +36,10 @@ async def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
         )
-    return UserMeResponse(id=user.id, email=user.email, session_id=session_id)
+    return UserMeResponse(
+        id=user.id,
+        email=user.email,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        session_id=session_id,
+    )

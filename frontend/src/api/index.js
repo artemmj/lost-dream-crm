@@ -1,6 +1,7 @@
 // Экспортируем все API модули из одного места
 export { usersApi } from './users'
 export { customersApi } from './customers'
+export { authApi } from './auth'
 export { crmApiClient, customersApiClient, createApiClient } from './client'
 
 /**

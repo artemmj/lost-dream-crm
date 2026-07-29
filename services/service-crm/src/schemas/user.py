@@ -78,4 +78,6 @@ class LoginResponse(BaseModel):
 class UserMeResponse(BaseModel):
     id: int
     email: EmailStr
+    first_name: str
+    last_name: str
     session_id: str | None = None

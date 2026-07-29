@@ -1,50 +1,71 @@
 <template>
     <div class="app">
-        <header class="app__header">
-            <h1>CRM System</h1>
-            <nav class="app__nav">
-                <button 
-                    :class="{ active: currentView === 'users' }"
-                    @click="currentView = 'users'"
-                >
-                    Users
-                </button>
-                <button 
-                    :class="{ active: currentView === 'customers' }"
-                    @click="currentView = 'customers'"
-                >
-                    Customers
-                </button>
-                <!-- ЗАГОТОВКА: Добавление новых сервисов -->
-                <!-- <button 
-                    :class="{ active: currentView === 'products' }"
-                    @click="currentView = 'products'"
-                >
-                    Products
-                </button> -->
-            </nav>
-            <div class="app__auth">
-                <span class="app__auth-placeholder">🔓 No auth (JWT placeholder)</span>
-            </div>
-        </header>
+        <!-- ===== Не авторизован → показываем AuthPage ===== -->
+        <AuthPage v-if="!authStore.isAuthenticated" />
 
-        <main class="app__main">
-            <UserList v-if="currentView === 'users'" />
-            <CustomerList v-else-if="currentView === 'customers'" />
-            <!-- ЗАГОТОВКА: Другие view -->
-            <!-- <ProductList v-else-if="currentView === 'products'" /> -->
-        </main>
+        <!-- ===== Авторизован → основной интерфейс ===== -->
+        <template v-else>
+            <header class="app__header">
+                <h1>CRM System</h1>
+
+                <nav class="app__nav">
+                    <button
+                        :class="{ active: currentView === 'users' }"
+                        @click="currentView = 'users'"
+                    >
+                        Users
+                    </button>
+                    <button
+                        :class="{ active: currentView === 'customers' }"
+                        @click="currentView = 'customers'"
+                    >
+                        Customers
+                    </button>
+                </nav>
+
+                <div class="app__auth">
+                    <span class="app__auth-user">
+                        👤 {{ authStore.currentUser?.first_name }}
+                        {{ authStore.currentUser?.last_name }}
+                    </span>
+                    <button
+                        class="app__logout"
+                        :disabled="authStore.loading"
+                        @click="handleLogout"
+                    >
+                        Logout
+                    </button>
+                </div>
+            </header>
+
+            <main class="app__main">
+                <UserList v-if="currentView === 'users'" />
+                <CustomerList v-else-if="currentView === 'customers'" />
+            </main>
+        </template>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useAuthStore } from './stores/auth'
+import AuthPage from './components/AuthPage.vue'
 import UserList from './components/UserList.vue'
 import CustomerList from './components/CustomerList.vue'
-// ЗАГОТОВКА:
-// import ProductList from './components/ProductList.vue'
 
+const authStore = useAuthStore()
 const currentView = ref('users')
+
+// При загрузке: если токен в localStorage есть — подтягиваем профиль
+onMounted(() => {
+    authStore.init()
+})
+
+async function handleLogout() {
+    await authStore.logout()
+    // После clearLocal() isAuthenticated станет false →
+    // Vue автоматически покажет AuthPage
+}
 </script>
 
 <style>
@@ -94,4 +115,29 @@ body {
 .app__auth-placeholder { font-size: 13px; color: #9ca3af; }
 
 .app__main { padding: 32px; }
+
+.app__auth {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.app__auth-user {
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.app__logout {
+    padding: 0.35rem 0.75rem;
+    background: #d32f2f;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.app__logout:hover {
+    background: #b71c1c;
+}
 </style>
