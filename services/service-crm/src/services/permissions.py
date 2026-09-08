@@ -1,4 +1,4 @@
-from src.dao.permissions_dao import PermissionDAO
+from src.dao.permissions import PermissionDAO
 from src.models import Permission
 
 

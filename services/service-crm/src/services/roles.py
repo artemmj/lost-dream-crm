@@ -1,4 +1,4 @@
-from src.dao.roles_dao import RoleDAO
+from src.dao.roles import RoleDAO
 from src.models import Role
 
 

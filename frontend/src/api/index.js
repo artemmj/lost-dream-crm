@@ -16,6 +16,7 @@ export {
 export { authApi } from './auth'
 export { usersApi } from './users'
 export { customersApi } from './customers'
+export { permsApi } from './perms'
 
 // ===== ЗАГОТОВКА: Добавление новых микросервисов =====
 /*

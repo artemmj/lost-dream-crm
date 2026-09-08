@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Tuple
 
 from sqlalchemy import exists, select, func, or_, delete
+from sqlalchemy.exc import IntegrityError
 
 from src.dao.base import BaseDAO
 from src.models import Permission
@@ -51,9 +52,22 @@ class PermissionDAO(BaseDAO[Permission]):
     async def create(self, code: str, description: Optional[str] = None) -> Dict:
         """Создание пермишена — возвращает словарь"""
         async with self.db.session_scope() as session:
+            # Проверяем уникальность кода ВНУТРИ той же сессии/транзакции,
+            # чтобы избежать race condition между exists_by_code и INSERT
+            stmt = select(exists().where(self.model.code == code))
+            result = await session.execute(stmt)
+            if result.scalar():
+                raise ValueError(f"Permission '{code}' already exists")
+
             perm = self.model(code=code, description=description)
             session.add(perm)
-            await session.flush()
+            try:
+                await session.flush()
+            except IntegrityError:
+                # Race condition: другой запрос вставил тот же code между проверкой и flush
+                await session.rollback()
+                raise ValueError(f"Permission '{code}' already exists")
+
             await session.refresh(perm)
             return self._model_to_dict(perm)
 
@@ -85,3 +99,10 @@ class PermissionDAO(BaseDAO[Permission]):
                 select(self.model).where(self.model.id == id)
             )
             return result.scalar_one_or_none()
+
+    async def exists_by_code(self, code: str) -> bool:
+        async with self.db.session_scope() as session:
+            result = await session.execute(
+                select(Permission.id).where(Permission.code == code)
+            )
+            return result.scalar_one_or_none() is not None

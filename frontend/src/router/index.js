@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from '../components/Dashboard.vue'
 import UserList from '../components/UserList.vue'
 import CustomerList from '../components/CustomerList.vue'
+import PermsPage from '../components/PermsPage.vue'
 
 const routes = [
     {
@@ -20,6 +21,12 @@ const routes = [
         path: '/customers',
         name: 'Customers',
         component: CustomerList,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/perms',
+        name: 'Perms',
+        component: PermsPage,
         meta: { requiresAuth: true }
     }
 ]

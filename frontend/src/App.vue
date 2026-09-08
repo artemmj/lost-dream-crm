@@ -1,9 +1,7 @@
 <template>
     <div class="app">
-        <!-- ===== Не авторизован → показываем AuthPage ===== -->
         <AuthPage v-if="!authStore.isAuthenticated" />
 
-        <!-- ===== Авторизован → основной интерфейс с Роутером ===== -->
         <template v-else>
             <header class="app__header">
                 <h1 
@@ -15,7 +13,6 @@
                 </h1>
 
                 <nav class="app__nav">
-                    <!-- Используем router.push для смены URL -->
                     <button
                         :class="{ active: route.path === '/' }"
                         @click="router.push('/')"
@@ -33,6 +30,13 @@
                         @click="router.push('/customers')"
                     >
                         Клиенты
+                    </button>
+                    <!-- 👇 Новая вкладка -->
+                    <button
+                        :class="{ active: route.path.startsWith('/perms') }"
+                        @click="router.push('/perms')"
+                    >
+                        Разрешения
                     </button>
                 </nav>
 
@@ -52,7 +56,6 @@
             </header>
 
             <main class="app__main">
-                <!-- Сюда Роутер будет подставлять компоненты: Dashboard, UserList и т.д. -->
                 <RouterView />
             </main>
         </template>
@@ -61,13 +64,13 @@
 
 <script setup>
 import { onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router' // <--- Импортируем хуки роутера
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import AuthPage from './components/AuthPage.vue'
 
 const authStore = useAuthStore()
-const route = useRoute()   // Текущий маршрут
-const router = useRouter() // Экземпляр роутера для навигации
+const route = useRoute()
+const router = useRouter()
 
 onMounted(() => {
     authStore.init()
@@ -75,13 +78,11 @@ onMounted(() => {
 
 async function handleLogout() {
     await authStore.logout()
-    // После выхода принудительно кидаем на главную (которая покажет AuthPage)
     router.push('/')
 }
 </script>
 
 <style>
-/* Твои стили остаются без изменений */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -93,7 +94,7 @@ body {
     display: flex; align-items: center; gap: 24px; padding: 16px 32px;
     background: white; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 10;
 }
-.app__logo { font-size: 20px; color: #4f46e5; user-select: none; }
+.app__logo { font-size: 20px; color: #4f46e5; user-select: none; cursor: pointer; }
 .app__nav { display: flex; gap: 8px; }
 .app__nav button {
     padding: 8px 16px; border: 1px solid #d1d5db; border-radius: 6px;

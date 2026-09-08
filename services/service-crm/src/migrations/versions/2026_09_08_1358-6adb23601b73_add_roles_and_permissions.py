@@ -96,9 +96,7 @@ def upgrade() -> None:
         INSERT INTO permissions (id, code, description) VALUES
             (1, 'manage_roles', 'Управление ролями и правами'),
             (2, 'manage_users', 'Управление пользователями'),
-            (3, 'view_reports', 'Просмотр отчётов'),
-            (4, 'moderate_content', 'Модерация контента'),
-            (5, 'create_user', 'Создание пользователя')
+            (3, 'create_user', 'Создание пользователя')
         ON CONFLICT (code) DO NOTHING
     """)
 
@@ -118,12 +116,8 @@ def upgrade() -> None:
         FROM (VALUES
             ('admin', 'manage_roles'),
             ('admin', 'manage_users'),
-            ('admin', 'view_reports'),
-            ('admin', 'moderate_content'),
             ('admin', 'create_user'),
-            ('user', 'create_user'),
-            ('moderator', 'view_reports'),
-            ('moderator', 'moderate_content')
+            ('user', 'create_user')
         ) AS mapping(role_name, perm_code)
         INNER JOIN roles r ON r.name = mapping.role_name
         INNER JOIN permissions p ON p.code = mapping.perm_code
@@ -147,6 +141,9 @@ def upgrade() -> None:
             END IF;
         END $$;
     """)
+
+    op.execute("SELECT setval('permissions_id_seq', COALESCE((SELECT MAX(id) FROM permissions), 0) + 1, false)")
+    op.execute("SELECT setval('roles_id_seq', COALESCE((SELECT MAX(id) FROM roles), 0) + 1, false)")
 
 
 def downgrade() -> None:

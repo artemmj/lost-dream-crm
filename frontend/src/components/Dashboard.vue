@@ -23,10 +23,13 @@
                 </button>
             </div>
 
-            <div class="dashboard__card dashboard__card--placeholder">
-                <div class="dashboard__card-icon">📊</div>
-                <h3 class="dashboard__card-title">Аналитика</h3>
-                <p class="dashboard__card-desc">Отчеты и метрики (скоро)</p>
+            <div class="dashboard__card">
+                <div class="dashboard__card-icon">🛡️</div>
+                <h3 class="dashboard__card-title">Роли и разрешения</h3>
+                <p class="dashboard__card-desc">Роли и разрешения</p>
+                <button class="dashboard__card-btn" @click="goToPerms">
+                    Перейти
+                </button>
             </div>
         </div>
     </div>
@@ -46,6 +49,10 @@ function goToUsers() {
 function goToCustomers() {
     router.push('/customers')
 }
+
+function goToPerms() {
+    router.push('/perms')
+}
 </script>
 
 <style scoped>
@@ -60,7 +67,6 @@ function goToCustomers() {
     display: flex; flex-direction: column; gap: 12px; transition: box-shadow 0.2s, transform 0.2s;
 }
 .dashboard__card:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); transform: translateY(-2px); }
-.dashboard__card--placeholder { opacity: 0.8; pointer-events: none; }
 .dashboard__card-icon { font-size: 32px; }
 .dashboard__card-title { font-size: 18px; font-weight: 600; color: #1f2937; }
 .dashboard__card-desc { font-size: 14px; color: #6b7280; line-height: 1.5; flex: 1; }

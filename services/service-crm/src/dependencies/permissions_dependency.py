@@ -1,10 +1,9 @@
-# dependencies/services.py
 from fastapi import Depends
 
 from src.dependencies.db_dependency import DBDependency
-from src.dao.permissions_dao import PermissionDAO
-from src.dao.roles_dao import RoleDAO
-from src.dao.user_roles_dao import UserRoleDAO
+from src.dao.permissions import PermissionDAO
+from src.dao.roles import RoleDAO
+from src.dao.user_roles import UserRoleDAO
 from src.services.permissions import PermissionService
 from src.services.roles import RoleService
 from src.services.user_role import UserRoleService
