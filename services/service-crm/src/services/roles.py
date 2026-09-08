@@ -42,6 +42,6 @@ class RoleService:
         return role
 
     async def delete(self, role_id: int) -> None:
-        deleted = await self.dao.delete(role_id)
+        deleted = await self.dao.delete_by_id(role_id)
         if not deleted:
             raise LookupError("Role not found")

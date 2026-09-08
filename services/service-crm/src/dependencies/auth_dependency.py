@@ -31,16 +31,18 @@ async def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Token is invalid"
         )
-    user = await user_service.get_user(user_id=int(user_id))
-    if user is None:
+    user_data = await user_service.get_user_with_roles(user_id=int(user_id))
+    if user_data is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
         )
+
     return UserMeResponse(
-        id=user.id,
-        email=user.email,
-        first_name=user.first_name,
-        last_name=user.last_name,
-        is_active=user.is_active,
+        id=user_data["id"],
+        email=user_data["email"],
+        first_name=user_data["first_name"],
+        last_name=user_data["last_name"],
+        is_active=user_data["is_active"],
         session_id=session_id,
+        roles=user_data["roles"],
     )

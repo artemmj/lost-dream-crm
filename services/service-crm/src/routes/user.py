@@ -10,9 +10,9 @@ from src.schemas.user import (
     EmailCheckRequest,
     EmailCheckResponse,
     UserCreateRequest,
-    UserListResponse,
     UserResponse,
     UserUpdateRequest,
+    UserListWithRolesResponse,
 )
 from src.services.user import (
     UserService,
@@ -43,21 +43,18 @@ async def get_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
-@router.get("/", response_model=UserListResponse)
+@router.get("/", response_model=UserListWithRolesResponse)
 async def list_users(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     is_active: Optional[bool] = Query(None),
+    search: str | None = Query(None, description="Поиск по email, имени, фамилии"),
     user_service: UserService = Depends(get_user_service),
 ):
     """Список пользователей с пагинацией и фильтрацией."""
-    users, total = await user_service.list_users(
-        page=page,
-        per_page=per_page,
-        is_active=is_active,
-    )
-    return UserListResponse(
-        users=users,
+    items, total = await user_service.get_users_with_roles(page, per_page, search)
+    return UserListWithRolesResponse(
+        users=items,
         total=total,
         page=page,
         per_page=per_page,

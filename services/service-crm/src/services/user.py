@@ -1,10 +1,11 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 import logging
 
 from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 
+from src.models.user import User
 from src.schemas.user import LoginResponse, UserMeResponse
 from src.dependencies.redis_dependency import RedisDependency
 from src.handlers.auth import AuthHandler
@@ -116,6 +117,16 @@ class UserService:
             raise UserNotFoundError(f"User with email '{email}' not found")
         return UserResponse(**user_dict)
 
+    async def get_user_with_roles(self, user_id: int) -> Optional[User]:
+        """Получение пользователя с ролями и пермишенами."""
+        return await self.user_dao.get_by_id_with_roles(user_id)
+
+    async def get_users_with_roles(
+        self, page: int, per_page: int, search: Optional[str] = None
+    ) -> Tuple[List[Dict], int]:
+        """Список пользователей с ролями."""
+        return await self.user_dao.get_list_with_roles(page, per_page, search)
+
     async def list_users(
         self,
         page: int = 1,
@@ -124,7 +135,7 @@ class UserService:
     ) -> tuple[List[UserResponse], int]:
         """Получение списка пользователей с пагинацией"""
         if is_active is not None and is_active:
-            users_dict = await self.user_dao.get_active_users()
+            users_dict = await self.user_dao.get_all_users()
             total = len(users_dict)
             start = (page - 1) * per_page
             users_dict = users_dict[start : start + per_page]  # noqa: E203

@@ -107,8 +107,6 @@ function handleUserSaved() {
 }
 
 async function handleDeactivate(userId) {
-    if (!confirm('Are you sure you want to deactivate this user?')) return
-    
     try {
         await usersApi.deactivateUser(userId)
         await loadUsers()

@@ -142,8 +142,12 @@ def upgrade() -> None:
         END $$;
     """)
 
-    op.execute("SELECT setval('permissions_id_seq', COALESCE((SELECT MAX(id) FROM permissions), 0) + 1, false)")
-    op.execute("SELECT setval('roles_id_seq', COALESCE((SELECT MAX(id) FROM roles), 0) + 1, false)")
+    op.execute(
+        "SELECT setval('permissions_id_seq', COALESCE((SELECT MAX(id) FROM permissions), 0) + 1, false)"
+    )
+    op.execute(
+        "SELECT setval('roles_id_seq', COALESCE((SELECT MAX(id) FROM roles), 0) + 1, false)"
+    )
 
 
 def downgrade() -> None:

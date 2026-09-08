@@ -84,7 +84,6 @@ class RoleDAO(BaseDAO[Role]):
     ) -> Optional[Dict]:
         """Обновление роли — возвращает словарь или None"""
         async with self.db.session_scope() as session:
-            # Загружаем объект с пермишенами для корректного обновления M2M
             result = await session.execute(
                 select(self.model)
                 .options(selectinload(self.model.permissions))
@@ -120,3 +119,15 @@ class RoleDAO(BaseDAO[Role]):
                 select(self.model).where(self.model.id == id)
             )
             return result.scalar_one_or_none()
+
+    async def exists_by_name(self, name: str, exclude_id: Optional[int] = None) -> bool:
+        """Проверка существования роли по имени, опционально исключая конкретную"""
+        async with self.db.read_only_scope() as session:
+            if exclude_id is not None:
+                stmt = select(
+                    exists().where(self.model.name == name, self.model.id != exclude_id)
+                )
+            else:
+                stmt = select(exists().where(self.model.name == name))
+            result = await session.execute(stmt)
+            return result.scalar()

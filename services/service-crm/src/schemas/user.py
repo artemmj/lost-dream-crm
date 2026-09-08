@@ -29,6 +29,20 @@ class PermissionListResponse(BaseModel):
     per_page: int
 
 
+class PermissionBrief(BaseModel):
+    id: int
+    code: str
+    description: str | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RoleBrief(BaseModel):
+    id: int
+    name: str
+    permissions: list[PermissionBrief] = []
+    model_config = ConfigDict(from_attributes=True)
+
+
 # === ROLES ===
 class RoleCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=50)
@@ -96,6 +110,7 @@ class UserResponse(BaseModel):
     is_banned: bool
     is_superuser: bool
     is_verified: bool
+    roles: list[RoleBrief] = []
 
     model_config = {"from_attributes": True}
 
@@ -138,4 +153,15 @@ class UserMeResponse(BaseModel):
     first_name: str
     last_name: str
     is_active: bool
+    is_banned: bool
+    is_superuser: bool
+    is_verified: bool
     session_id: str | None = None
+    roles: list[RoleBrief] = []
+
+
+class UserListWithRolesResponse(BaseModel):
+    users: list[UserMeResponse]
+    total: int
+    page: int
+    per_page: int

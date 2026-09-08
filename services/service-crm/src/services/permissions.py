@@ -12,8 +12,6 @@ class PermissionService:
         return await self.dao.get_list(page, per_page, search)
 
     async def create(self, code: str, description: str | None) -> Permission:
-        if await self.dao.exists_by_code(code):
-            raise ValueError(f"Permission '{code}' already exists")
         return await self.dao.create(code, description)
 
     async def update_description(
@@ -25,6 +23,6 @@ class PermissionService:
         return perm
 
     async def delete(self, permission_id: int) -> None:
-        deleted = await self.dao.delete(permission_id)
+        deleted = await self.dao.delete_by_id(permission_id)
         if not deleted:
             raise LookupError("Permission not found")

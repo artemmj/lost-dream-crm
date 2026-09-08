@@ -1,8 +1,6 @@
 from typing import Dict, List, Optional, Tuple
-
 from sqlalchemy import exists, select, func, or_, delete
 from sqlalchemy.exc import IntegrityError
-
 from src.dao.base import BaseDAO
 from src.models import Permission
 from src.dependencies.db_dependency import DBDependency
@@ -17,7 +15,6 @@ class PermissionDAO(BaseDAO[Permission]):
     async def get_list(
         self, page: int, per_page: int, search: Optional[str] = None
     ) -> Tuple[List[Dict], int]:
-        """Список пермишенов с пагинацией и поиском — возвращает список словарей"""
         async with self.db.read_only_scope() as session:
             query = select(self.model)
             count_query = select(func.count(self.model.id))
@@ -31,9 +28,7 @@ class PermissionDAO(BaseDAO[Permission]):
                 query = query.where(filter_cond)
                 count_query = count_query.where(filter_cond)
 
-            total_result = await session.execute(count_query)
-            total = total_result.scalar_one()
-
+            total = (await session.execute(count_query)).scalar_one()
             result = await session.execute(
                 query.order_by(self.model.code)
                 .offset((page - 1) * per_page)
@@ -43,17 +38,13 @@ class PermissionDAO(BaseDAO[Permission]):
             return [self._model_to_dict(obj) for obj in objects], total
 
     async def code_exists(self, code: str) -> bool:
-        """Проверка существования пермишена по коду"""
         async with self.db.read_only_scope() as session:
             stmt = select(exists().where(self.model.code == code))
             result = await session.execute(stmt)
             return result.scalar()
 
     async def create(self, code: str, description: Optional[str] = None) -> Dict:
-        """Создание пермишена — возвращает словарь"""
         async with self.db.session_scope() as session:
-            # Проверяем уникальность кода ВНУТРИ той же сессии/транзакции,
-            # чтобы избежать race condition между exists_by_code и INSERT
             stmt = select(exists().where(self.model.code == code))
             result = await session.execute(stmt)
             if result.scalar():
@@ -64,8 +55,6 @@ class PermissionDAO(BaseDAO[Permission]):
             try:
                 await session.flush()
             except IntegrityError:
-                # Race condition: другой запрос вставил тот же code между проверкой и flush
-                await session.rollback()
                 raise ValueError(f"Permission '{code}' already exists")
 
             await session.refresh(perm)
@@ -74,35 +63,23 @@ class PermissionDAO(BaseDAO[Permission]):
     async def update_description(
         self, permission_id: int, description: Optional[str]
     ) -> Optional[Dict]:
-        """Обновление описания — возвращает словарь или None"""
+        """Обновление описания — загрузка и обновление в ОДНОЙ сессии"""
         async with self.db.session_scope() as session:
-            obj = await self.get_obj_by_id(permission_id)
+            result = await session.execute(
+                select(self.model).where(self.model.id == permission_id)
+            )
+            obj = result.scalar_one_or_none()
             if not obj:
                 return None
+
             obj.description = description
             await session.flush()
             await session.refresh(obj)
             return self._model_to_dict(obj)
 
     async def delete_by_id(self, permission_id: int) -> bool:
-        """Удаление пермишена по ID"""
         async with self.db.session_scope() as session:
             result = await session.execute(
                 delete(self.model).where(self.model.id == permission_id)
             )
             return result.rowcount > 0
-
-    async def get_obj_by_id(self, id: int) -> Optional[Permission]:
-        """Получение ORM объекта (для операций update/delete)"""
-        async with self.db.session_scope() as session:
-            result = await session.execute(
-                select(self.model).where(self.model.id == id)
-            )
-            return result.scalar_one_or_none()
-
-    async def exists_by_code(self, code: str) -> bool:
-        async with self.db.session_scope() as session:
-            result = await session.execute(
-                select(Permission.id).where(Permission.code == code)
-            )
-            return result.scalar_one_or_none() is not None
