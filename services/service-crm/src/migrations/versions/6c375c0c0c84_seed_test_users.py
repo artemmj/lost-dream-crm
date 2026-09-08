@@ -57,7 +57,7 @@ TEST_USERS = [
         "is_banned": False,
         "is_superuser": False,
         "is_verified": True,
-    }
+    },
 ]
 
 
@@ -71,6 +71,4 @@ def downgrade() -> None:
     """Downgrade schema."""
     # Удаляем только тестовых пользователей
     emails = [user["email"] for user in TEST_USERS]
-    op.execute(
-        user_table.delete().where(user_table.c.email.in_(emails))
-    )
+    op.execute(user_table.delete().where(user_table.c.email.in_(emails)))

@@ -98,9 +98,7 @@ class UserService:
         return LoginResponse(access_token=token)
 
     async def logout_user(self, user: UserMeResponse) -> JSONResponse:
-        await self.revoke_access_token(
-            user_id=user.id, session_id=user.session_id
-        )
+        await self.revoke_access_token(user_id=user.id, session_id=user.session_id)
         response = JSONResponse(content={"message": "Logged out"})
         return response
 

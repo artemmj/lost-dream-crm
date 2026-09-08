@@ -1,7 +1,64 @@
 import datetime
 from typing import Annotated, List, Optional
 
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, Field, StringConstraints, ConfigDict
+
+
+# === PERMISSIONS ===
+class PermissionCreate(BaseModel):
+    code: str = Field(..., min_length=3, max_length=100, pattern=r"^[a-z][a-z0-9_:]*$")
+    description: str | None = Field(None, max_length=255)
+
+
+class PermissionUpdate(BaseModel):
+    description: str | None = Field(None, max_length=255)
+    # code намеренно не редактируем — это внутренний идентификатор
+
+
+class PermissionRead(BaseModel):
+    id: int
+    code: str
+    description: str | None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PermissionListResponse(BaseModel):
+    items: list[PermissionRead]
+    total: int
+    page: int
+    per_page: int
+
+
+# === ROLES ===
+class RoleCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=50)
+    permission_ids: list[int] = Field(default_factory=list)
+
+
+class RoleUpdate(BaseModel):
+    name: str | None = Field(None, min_length=2, max_length=50)
+    permission_ids: list[int] | None = None  # None = не менять, [] = убрать все
+
+
+class RoleRead(BaseModel):
+    id: int
+    name: str
+    permissions: list[PermissionRead] = []
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RoleListResponse(BaseModel):
+    items: list[RoleRead]
+    total: int
+    page: int
+    per_page: int
+
+
+# === USER ROLES ASSIGNMENT ===
+class UserRoleAssign(BaseModel):
+    role_ids: list[int] = Field(
+        ..., description="Полный список ID ролей для пользователя"
+    )
 
 
 class AuthUser(BaseModel):
@@ -80,4 +137,5 @@ class UserMeResponse(BaseModel):
     email: str
     first_name: str
     last_name: str
+    is_active: bool
     session_id: str | None = None
