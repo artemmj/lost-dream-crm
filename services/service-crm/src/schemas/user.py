@@ -1,23 +1,23 @@
 import datetime
 from typing import Annotated, List, Optional
 
-from pydantic import BaseModel, EmailStr, Field, StringConstraints
+from pydantic import BaseModel, Field, StringConstraints
 
 
 class AuthUser(BaseModel):
-    email: EmailStr
-    password: Annotated[str, StringConstraints(min_length=8, max_length=128)]
+    email: str
+    password: Annotated[str, StringConstraints(min_length=2, max_length=128)]
 
 
 class UserCreateRequest(BaseModel):
-    email: EmailStr = Field(..., example="john@example.com")
+    email: str = Field(..., min_length=5, example="john@example.com")
     password: Annotated[str, StringConstraints(min_length=8, max_length=128)]
     first_name: str = Field(..., min_length=1, max_length=100, example="John")
     last_name: str = Field(..., min_length=1, max_length=100, example="Doe")
 
 
 class UserUpdateRequest(BaseModel):
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     # password_hash: Optional[str] = Field(None, min_length=8)
     first_name: Optional[str] = Field(None, min_length=1, max_length=100)
     last_name: Optional[str] = Field(None, min_length=1, max_length=100)
@@ -62,7 +62,7 @@ class BulkCreateResponse(BaseModel):
 
 
 class EmailCheckRequest(BaseModel):
-    emails: List[EmailStr] = Field(..., min_items=1, max_items=50)
+    emails: List[str] = Field(..., min_items=1, max_items=50)
 
 
 class EmailCheckResponse(BaseModel):
@@ -77,7 +77,7 @@ class LoginResponse(BaseModel):
 
 class UserMeResponse(BaseModel):
     id: int
-    email: EmailStr
+    email: str
     first_name: str
     last_name: str
     session_id: str | None = None

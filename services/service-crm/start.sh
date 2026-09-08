@@ -17,17 +17,6 @@ done
 
 echo "(CRM-APP) ✅ Migrations completed successfully!"
 
-# ===== Создание тестовых пользователей =====
-
-echo "(CRM-APP) 🌱 Creating test users..."
-
-# Используем Python скрипт для создания тестовых данных
-uv run python -m src.scripts.seed_users || {
-    echo "(CRM-APP) ⚠️  Warning: Seed script failed, but continuing..."
-}
-
-echo "(CRM-APP) ✅ Test users created (or already existed)"
-
 # ===== Запуск приложения =====
 
 echo "(CRM-APP) 🚀 Starting FastAPI..."
