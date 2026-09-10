@@ -19,7 +19,9 @@ class RoleService:
         """Получение роли по ID."""
         return await self.dao.get_by_id(role_id)
 
-    async def create(self, name: str, permission_ids: Optional[list[int]] = None) -> dict:
+    async def create(
+        self, name: str, permission_ids: Optional[list[int]] = None
+    ) -> dict:
         """Создание роли."""
         return await self.dao.create(name, permission_ids)
 

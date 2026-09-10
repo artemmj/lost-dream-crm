@@ -94,6 +94,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { permsApi } from '@/api'
 
 const props = defineProps({
     user: {
@@ -133,13 +134,7 @@ function closeRolesModal() {
 async function fetchAllRoles() {
     rolesLoading.value = true
     try {
-        const response = await fetch('http://localhost:8001/api/v1/crm/perms/roles?per_page=99', {
-            headers: {
-                'accept': 'application/json',
-            },
-            credentials: 'include',
-        })
-        const data = await response.json()
+        const { data } = await permsApi.getRoles({ per_page: 99 })
         allRoles.value = data.items || []
     } catch (e) {
         console.error('Failed to fetch roles:', e)
@@ -153,30 +148,16 @@ async function saveRoles() {
     rolesSaving.value = true
     rolesError.value = ''
     try {
-        // Отправляем просто массив role_ids, а не объект
-        const response = await fetch(`http://localhost:8001/api/v1/crm/perms/users/${props.user.id}/roles`, {
-            method: 'PUT',
-            headers: {
-                'accept': 'application/json',
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify(selectedRoleIds.value), // Просто массив
-        })
-        
-        if (!response.ok) {
-            const error = await response.json()
-            throw new Error(error.detail || 'Ошибка сохранения ролей')
-        }
-        
+        await permsApi.assignUserRoles(props.user.id, selectedRoleIds.value)
+
         // Обновляем пользователя в родительском компоненте
         emit('roles-updated', {
             userId: props.user.id,
-            roleIds: selectedRoleIds.value
+            roleIds: selectedRoleIds.value,
         })
         closeRolesModal()
     } catch (e) {
-        rolesError.value = e.message || 'Ошибка сохранения ролей'
+        rolesError.value = e.response?.data?.detail || e.message || 'Ошибка сохранения ролей'
     } finally {
         rolesSaving.value = false
     }

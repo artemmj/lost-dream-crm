@@ -1,10 +1,7 @@
-# routers/perms.py
-from typing import Annotated
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from src.dependencies.auth_dependency import get_current_user
 from src.dependencies.permissions_dependency import (
+    Perm,
     get_permission_service,
     get_role_service,
     get_user_role_service,
@@ -33,10 +30,10 @@ router = APIRouter(prefix="/perms", tags=["Permissions & Roles"])
 
 @router.get("/permissions", response_model=PermissionListResponse)
 async def list_permissions(
-    user: Annotated[UserMeResponse, Depends(get_current_user)],
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     search: str | None = Query(None, description="Поиск по code и description"),
+    current_user: UserMeResponse = Perm("list_permissions"),
     service: PermissionService = Depends(get_permission_service),
 ):
     items, total = await service.get_list(page, per_page, search)
@@ -49,8 +46,8 @@ async def list_permissions(
     "/permissions", response_model=PermissionRead, status_code=status.HTTP_201_CREATED
 )
 async def create_permission(
-    user: Annotated[UserMeResponse, Depends(get_current_user)],
     data: PermissionCreate,
+    current_user: UserMeResponse = Perm("create_permission"),
     service: PermissionService = Depends(get_permission_service),
 ):
     try:
@@ -62,9 +59,9 @@ async def create_permission(
 
 @router.patch("/permissions/{permission_id}", response_model=PermissionRead)
 async def update_permission(
-    user: Annotated[UserMeResponse, Depends(get_current_user)],
     permission_id: int,
     data: PermissionUpdate,
+    current_user: UserMeResponse = Perm("update_permission"),
     service: PermissionService = Depends(get_permission_service),
 ):
     try:
@@ -76,8 +73,8 @@ async def update_permission(
 
 @router.delete("/permissions/{permission_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_permission(
-    user: Annotated[UserMeResponse, Depends(get_current_user)],
     permission_id: int,
+    current_user: UserMeResponse = Perm("delete_permission"),
     service: PermissionService = Depends(get_permission_service),
 ):
     try:
@@ -91,7 +88,7 @@ async def delete_permission(
 
 @router.get("/roles", response_model=RoleListResponse)
 async def list_roles(
-    user: Annotated[UserMeResponse, Depends(get_current_user)],
+    current_user: UserMeResponse = Perm("list_roles"),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     search: str | None = Query(None),
@@ -103,8 +100,8 @@ async def list_roles(
 
 @router.post("/roles", response_model=RoleRead, status_code=status.HTTP_201_CREATED)
 async def create_role(
-    user: Annotated[UserMeResponse, Depends(get_current_user)],
     data: RoleCreate,
+    current_user: UserMeResponse = Perm("create_role"),
     service: RoleService = Depends(get_role_service),
 ):
     try:
@@ -118,9 +115,9 @@ async def create_role(
 
 @router.patch("/roles/{role_id}", response_model=RoleRead)
 async def update_role(
-    user: Annotated[UserMeResponse, Depends(get_current_user)],
     role_id: int,
     data: RoleUpdate,
+    current_user: UserMeResponse = Perm("update_role"),
     service: RoleService = Depends(get_role_service),
 ):
     try:
@@ -136,8 +133,8 @@ async def update_role(
 
 @router.delete("/roles/{role_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_role(
-    user: Annotated[UserMeResponse, Depends(get_current_user)],
     role_id: int,
+    current_user: UserMeResponse = Perm("delete_role"),
     service: RoleService = Depends(get_role_service),
 ):
     try:
@@ -151,9 +148,9 @@ async def delete_role(
 
 @router.put("/users/{user_id}/roles", response_model=list[RoleRead])
 async def assign_user_roles(
-    user: Annotated[UserMeResponse, Depends(get_current_user)],
     user_id: int,
     data: UserRoleAssign,
+    current_user: UserMeResponse = Perm("assign_user_roles"),
     service: UserRoleService = Depends(get_user_role_service),
 ):
     try:

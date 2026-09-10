@@ -26,17 +26,16 @@
                         Пользователи
                     </button>
                     <button
-                        :class="{ active: route.path.startsWith('/customers') }"
-                        @click="router.push('/customers')"
-                    >
-                        Клиенты
-                    </button>
-                    <!-- 👇 Новая вкладка -->
-                    <button
                         :class="{ active: route.path.startsWith('/perms') }"
                         @click="router.push('/perms')"
                     >
                         Разрешения
+                    </button>
+                    <button
+                        :class="{ active: route.path.startsWith('/customers') }"
+                        @click="router.push('/customers')"
+                    >
+                        Клиенты
                     </button>
                 </nav>
 

@@ -40,6 +40,10 @@ export const permsApi = {
 
     // ==================== USER ROLES ====================
 
+    // getUserRoles(userId) {
+    //     return crmApiClient.get(`/perms/users/${userId}/roles`)
+    // },
+
     assignUserRoles(userId, roleIds) {
         return crmApiClient.put(`/perms/users/${userId}/roles`, { role_ids: roleIds })
     },

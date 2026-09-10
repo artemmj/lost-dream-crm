@@ -90,7 +90,9 @@ class RoleDAO(BaseDAO[Role]):
         async with self.db.read_only_scope() as session:
             if exclude_role_id is not None:
                 stmt = select(
-                    exists().where(self.model.name == name, self.model.id != exclude_role_id)
+                    exists().where(
+                        self.model.name == name, self.model.id != exclude_role_id
+                    )
                 )
             else:
                 stmt = select(exists().where(self.model.name == name))

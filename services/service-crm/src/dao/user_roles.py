@@ -1,12 +1,12 @@
 # dao/user_roles.py
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from sqlalchemy import select, exists
 from sqlalchemy.orm import selectinload
 
 from src.dao.base import BaseDAO
-from src.models import User, Role
+from src.models import User, Role, Permission
 from src.dependencies.db_dependency import DBDependency
 
 
@@ -28,15 +28,11 @@ class UserRoleDAO(BaseDAO[Role]):
         if not role_ids:
             return {}
         async with self.db.read_only_scope() as session:
-            result = await session.execute(
-                select(Role.id).where(Role.id.in_(role_ids))
-            )
+            result = await session.execute(select(Role.id).where(Role.id.in_(role_ids)))
             existing_ids = set(result.scalars().all())
             return {role_id: role_id in existing_ids for role_id in role_ids}
 
-    async def assign_roles(
-        self, user_id: int, role_ids: List[int]
-    ) -> List[Dict]:
+    async def assign_roles(self, user_id: int, role_ids: List[int]) -> List[Dict]:
         """
         Полная замена ролей пользователя.
         Возвращает обновлённый список ролей (список словарей).
@@ -46,9 +42,7 @@ class UserRoleDAO(BaseDAO[Role]):
         async with self.db.session_scope() as session:
             # Загружаем пользователя
             result = await session.execute(
-                select(User)
-                .options(selectinload(User.roles))
-                .where(User.id == user_id)
+                select(User).options(selectinload(User.roles)).where(User.id == user_id)
             )
             user = result.scalar_one_or_none()
             if not user:
@@ -92,3 +86,26 @@ class UserRoleDAO(BaseDAO[Role]):
                 }
                 for role in refreshed_user.roles
             ]
+
+    async def get_user_permission_codes(self, user_id: int) -> Optional[set[str]]:
+        """
+        Возвращает множество кодов пермишенов пользователя или None если юзер не найден.
+        Один запрос через JOIN вместо N+1.
+        """
+        async with self.db.read_only_scope() as session:
+            # Проверяем существование пользователя
+            user_exists = await session.execute(
+                select(exists().where(User.id == user_id))
+            )
+            if not user_exists.scalar():
+                return None
+
+            # Получаем все коды пермишенов одним запросом
+            result = await session.execute(
+                select(Permission.code)
+                .join(Role.permissions)
+                .join(User.roles)
+                .where(User.id == user_id)
+            )
+            codes = result.scalars().all()
+            return set(codes)

@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, StringConstraints, ConfigDict
 
 # === PERMISSIONS ===
 
+
 class PermissionCreate(BaseModel):
     code: str = Field(..., min_length=3, max_length=100, pattern=r"^[a-z][a-z0-9_:]*$")
     description: str | None = Field(None, max_length=255)
@@ -46,6 +47,7 @@ class RoleBrief(BaseModel):
 
 # === ROLES ===
 
+
 class RoleCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=50)
     permission_ids: list[int] = Field(default_factory=list)
@@ -72,6 +74,7 @@ class RoleListResponse(BaseModel):
 
 # === USER ROLES ASSIGNMENT ===
 
+
 class UserRoleAssign(BaseModel):
     role_ids: list[int] = Field(
         ..., description="Полный список ID ролей для пользователя"
@@ -79,6 +82,7 @@ class UserRoleAssign(BaseModel):
 
 
 # === USERS ===
+
 
 class AuthUser(BaseModel):
     email: str
