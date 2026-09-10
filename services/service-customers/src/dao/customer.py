@@ -71,7 +71,6 @@ class CustomerDAO(BaseDAO[Customer]):
                 .values(is_active=False)
             )
 
-    # ЗАГОТОВКА: если нужен метод, возвращающий объект Customer (для update/delete)
     async def get_obj_by_id(self, id: int) -> Optional[Customer]:
         """Получение ORM объекта (для операций update/delete)"""
         async with self.db.read_only_scope() as session:

@@ -24,8 +24,6 @@
                 :key="user.id"
                 :user="user"
                 @edit="handleEdit"
-                @deactivate="handleDeactivate"
-                @activate="handleActivate"
                 @delete="handleDelete"
             />
         </div>
@@ -104,26 +102,6 @@ function handleEdit(user) {
 // После успешного сохранения в модалке
 function handleUserSaved() {
     loadUsers() // Перезагружаем список, чтобы увидеть изменения
-}
-
-async function handleDeactivate(userId) {
-    try {
-        await usersApi.deactivateUser(userId)
-        await loadUsers()
-    } catch (err) {
-        console.error('Failed to deactivate user:', err)
-        alert('Failed to deactivate user')
-    }
-}
-
-async function handleActivate(userId) {
-    try {
-        await usersApi.activateUser(userId)
-        await loadUsers()
-    } catch (err) {
-        console.error('Failed to activate user:', err)
-        alert('Failed to activate user')
-    }
 }
 
 async function handleDelete(userId) {

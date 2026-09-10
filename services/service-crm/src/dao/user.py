@@ -67,20 +67,6 @@ class UserDAO(BaseDAO[User]):
             objects = result.scalars().all()
             return [self._model_to_dict(obj) for obj in objects]
 
-    async def deactivate_user(self, user_id: int) -> None:
-        """Деактивация пользователя"""
-        async with self.db.session_scope() as session:
-            await session.execute(
-                update(User).where(User.id == user_id).values(is_active=False)
-            )
-
-    async def activate_user(self, user_id: int) -> None:
-        """Деактивация пользователя"""
-        async with self.db.session_scope() as session:
-            await session.execute(
-                update(User).where(User.id == user_id).values(is_active=True)
-            )
-
     async def get_obj_by_id(self, id: int) -> Optional[User]:
         async with self.db.session_scope() as session:
             result = await session.execute(

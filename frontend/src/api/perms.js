@@ -31,7 +31,7 @@ export const permsApi = {
     },
 
     updateRole(id, data) {
-        return crmApiClient.put(`/perms/roles/${id}`, data)
+        return crmApiClient.patch(`/perms/roles/${id}`, data)
     },
 
     deleteRole(id) {
@@ -39,10 +39,6 @@ export const permsApi = {
     },
 
     // ==================== USER ROLES ====================
-
-    getUserRoles(userId) {
-        return crmApiClient.get(`/perms/users/${userId}/roles`)
-    },
 
     assignUserRoles(userId, roleIds) {
         return crmApiClient.put(`/perms/users/${userId}/roles`, { role_ids: roleIds })

@@ -165,27 +165,6 @@ class UserService:
         updated_dict = await self.user_dao.update(user)
         return UserResponse(**updated_dict)
 
-    async def deactivate_user(self, user_id: int) -> UserResponse:
-        """Деактивация пользователя"""
-        user_dict = await self.user_dao.get_by_id(user_id)
-        if not user_dict:
-            raise UserNotFoundError(f"User with id {user_id} not found")
-
-        await self.user_dao.deactivate_user(user_id)
-        await self._revoke_user_sessions(user_id)
-
-        updated_dict = await self.user_dao.get_by_id(user_id)
-        return UserResponse(**updated_dict)
-
-    async def activate_user(self, user_id: int) -> UserResponse:
-        """Активация пользователя"""
-        user_dict = await self.user_dao.get_by_id(user_id)
-        if not user_dict:
-            raise UserNotFoundError(f"User with id {user_id} not found")
-        await self.user_dao.activate_user(user_id)
-        updated_dict = await self.user_dao.get_by_id(user_id)
-        return UserResponse(**updated_dict)
-
     async def delete_user(self, user_id: int) -> None:
         """Удаление пользователя"""
         user = await self.user_dao.get_obj_by_id(user_id)
@@ -220,11 +199,6 @@ class UserService:
 
         logger.info(f"User {user_id} unbanned")
         return UserResponse(**updated_dict)
-
-    async def check_emails_availability(self, emails: List[str]) -> Dict[str, bool]:
-        """Проверка доступности email"""
-        existing = await self.user_dao.check_multiple_emails_exist(emails)
-        return {email: not exists for email, exists in existing.items()}
 
     async def _send_welcome_email(self, user_dict: dict) -> None:
         logger.info(f"Sending welcome email to {user_dict['email']}")

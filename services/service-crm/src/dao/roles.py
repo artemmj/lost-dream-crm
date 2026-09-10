@@ -1,7 +1,9 @@
-from typing import Dict, List, Optional, Tuple
+# dao/role_dao.py
 
+from typing import Dict, List, Optional, Tuple
 from sqlalchemy import exists, select, func, delete
 from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import IntegrityError
 
 from src.dao.base import BaseDAO
 from src.models import Role, Permission
@@ -36,22 +38,67 @@ class RoleDAO(BaseDAO[Role]):
                 .limit(per_page)
             )
             objects = result.scalars().unique().all()
-            return [self._model_to_dict(obj) for obj in objects], total
+
+            # 👇 Явная сериализация ВНУТРИ сессии
+            items = [
+                {
+                    "id": role.id,
+                    "name": role.name,
+                    "permissions": [
+                        {
+                            "id": perm.id,
+                            "code": perm.code,
+                            "description": perm.description,
+                        }
+                        for perm in role.permissions
+                    ],
+                }
+                for role in objects
+            ]
+
+            return items, total
+
+    async def get_by_id(self, role_id: int) -> Optional[Dict]:
+        """Получение роли с пермишенами по ID — возвращает словарь"""
+        async with self.db.read_only_scope() as session:
+            result = await session.execute(
+                select(self.model)
+                .options(selectinload(self.model.permissions))
+                .where(self.model.id == role_id)
+            )
+            role = result.scalar_one_or_none()
+            if not role:
+                return None
+
+            return {
+                "id": role.id,
+                "name": role.name,
+                "permissions": [
+                    {
+                        "id": perm.id,
+                        "code": perm.code,
+                        "description": perm.description,
+                    }
+                    for perm in role.permissions
+                ],
+            }
 
     async def name_exists(
         self, name: str, exclude_role_id: Optional[int] = None
     ) -> bool:
-        """Проверка существования роли по имени, опционально исключая конкретную"""
+        """Проверка существования роли по имени"""
         async with self.db.read_only_scope() as session:
-            conditions = [self.model.name == name]
             if exclude_role_id is not None:
-                conditions.append(self.model.id != exclude_role_id)
-            stmt = select(exists().where(*conditions))
+                stmt = select(
+                    exists().where(self.model.name == name, self.model.id != exclude_role_id)
+                )
+            else:
+                stmt = select(exists().where(self.model.name == name))
             result = await session.execute(stmt)
             return result.scalar()
 
     async def get_permissions_by_ids(self, ids: List[int]) -> List[Permission]:
-        """Получение ORM объектов пермишенов по списку ID (для назначения связям)"""
+        """Получение ORM объектов пермишенов по списку ID"""
         if not ids:
             return []
         async with self.db.read_only_scope() as session:
@@ -65,16 +112,50 @@ class RoleDAO(BaseDAO[Role]):
     ) -> Dict:
         """Создание роли с пермишенами — возвращает словарь"""
         async with self.db.session_scope() as session:
+            # Проверка уникальности ВНУТРИ сессии
+            stmt = select(exists().where(self.model.name == name))
+            result = await session.execute(stmt)
+            if result.scalar():
+                raise ValueError(f"Role '{name}' already exists")
+
             role = self.model(name=name)
 
             if permission_ids:
-                perms = await self.get_permissions_by_ids(permission_ids)
+                # Загружаем пермишены в той же сессии
+                perms_result = await session.execute(
+                    select(Permission).where(Permission.id.in_(permission_ids))
+                )
+                perms = list(perms_result.scalars().all())
+                if len(perms) != len(permission_ids):
+                    raise ValueError("Some permission IDs do not exist")
                 role.permissions = perms
 
             session.add(role)
-            await session.flush()
-            await session.refresh(role, attribute_names=["permissions"])
-            return self._model_to_dict(role)
+            try:
+                await session.flush()
+            except IntegrityError:
+                raise ValueError(f"Role '{name}' already exists")
+
+            # Перечитываем с пермишенами для ответа
+            refreshed_result = await session.execute(
+                select(self.model)
+                .options(selectinload(self.model.permissions))
+                .where(self.model.id == role.id)
+            )
+            refreshed_role = refreshed_result.scalar_one()
+
+            return {
+                "id": refreshed_role.id,
+                "name": refreshed_role.name,
+                "permissions": [
+                    {
+                        "id": perm.id,
+                        "code": perm.code,
+                        "description": perm.description,
+                    }
+                    for perm in refreshed_role.permissions
+                ],
+            }
 
     async def update(
         self,
@@ -89,20 +170,54 @@ class RoleDAO(BaseDAO[Role]):
                 .options(selectinload(self.model.permissions))
                 .where(self.model.id == role_id)
             )
-            obj = result.scalar_one_or_none()
-            if not obj:
+            role = result.scalar_one_or_none()
+            if not role:
                 return None
 
             if name is not None:
-                obj.name = name
+                # Проверка уникальности имени внутри сессии
+                dup_stmt = select(
+                    exists().where(self.model.name == name, self.model.id != role_id)
+                )
+                dup_result = await session.execute(dup_stmt)
+                if dup_result.scalar():
+                    raise ValueError(f"Role '{name}' already exists")
+                role.name = name
 
             if permission_ids is not None:
-                perms = await self.get_permissions_by_ids(permission_ids)
-                obj.permissions = perms
+                perms_result = await session.execute(
+                    select(Permission).where(Permission.id.in_(permission_ids))
+                )
+                perms = list(perms_result.scalars().all())
+                if len(perms) != len(permission_ids):
+                    raise ValueError("Some permission IDs do not exist")
+                role.permissions = perms
 
-            await session.flush()
-            await session.refresh(obj, attribute_names=["permissions"])
-            return self._model_to_dict(obj)
+            try:
+                await session.flush()
+            except IntegrityError:
+                raise ValueError(f"Role name already exists")
+
+            # Перечитываем с пермишенами
+            refreshed_result = await session.execute(
+                select(self.model)
+                .options(selectinload(self.model.permissions))
+                .where(self.model.id == role_id)
+            )
+            refreshed_role = refreshed_result.scalar_one()
+
+            return {
+                "id": refreshed_role.id,
+                "name": refreshed_role.name,
+                "permissions": [
+                    {
+                        "id": perm.id,
+                        "code": perm.code,
+                        "description": perm.description,
+                    }
+                    for perm in refreshed_role.permissions
+                ],
+            }
 
     async def delete_by_id(self, role_id: int) -> bool:
         """Удаление роли по ID"""
@@ -111,23 +226,3 @@ class RoleDAO(BaseDAO[Role]):
                 delete(self.model).where(self.model.id == role_id)
             )
             return result.rowcount > 0
-
-    async def get_obj_by_id(self, id: int) -> Optional[Role]:
-        """Получение ORM объекта (для операций update/delete)"""
-        async with self.db.session_scope() as session:
-            result = await session.execute(
-                select(self.model).where(self.model.id == id)
-            )
-            return result.scalar_one_or_none()
-
-    async def exists_by_name(self, name: str, exclude_id: Optional[int] = None) -> bool:
-        """Проверка существования роли по имени, опционально исключая конкретную"""
-        async with self.db.read_only_scope() as session:
-            if exclude_id is not None:
-                stmt = select(
-                    exists().where(self.model.name == name, self.model.id != exclude_id)
-                )
-            else:
-                stmt = select(exists().where(self.model.name == name))
-            result = await session.execute(stmt)
-            return result.scalar()

@@ -70,14 +70,6 @@ class BulkCreateResponse(BaseModel):
     customers: List[CustomerResponse]
 
 
-class EmailCheckRequest(BaseModel):
-    emails: List[EmailStr] = Field(..., min_items=1, max_items=50)
-
-
-class EmailCheckResponse(BaseModel):
-    emails: dict
-
-
 # ===== Dependency Injection =====
 
 
@@ -163,16 +155,6 @@ async def delete_customer(
 
 
 # ===== Специализированные endpoints =====
-
-
-@router.post("/check-emails", response_model=EmailCheckResponse)
-async def check_emails(
-    request: EmailCheckRequest,
-    customer_service: CustomerService = Depends(get_customer_service),
-):
-    """Проверка доступности email"""
-    availability = await customer_service.check_emails_availability(request.emails)
-    return EmailCheckResponse(emails=availability)
 
 
 @router.post(

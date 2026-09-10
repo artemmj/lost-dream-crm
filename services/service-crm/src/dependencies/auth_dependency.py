@@ -43,6 +43,9 @@ async def get_current_user(
         first_name=user_data["first_name"],
         last_name=user_data["last_name"],
         is_active=user_data["is_active"],
+        is_banned=user_data["is_banned"],
+        is_superuser=user_data["is_superuser"],
+        is_verified=user_data["is_verified"],
         session_id=session_id,
         roles=user_data["roles"],
     )

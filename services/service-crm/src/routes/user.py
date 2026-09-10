@@ -5,11 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from src.dependencies.auth_dependency import get_current_user
 from src.schemas.user import UserMeResponse
 from src.schemas.user import (
-    BulkCreateRequest,
-    BulkCreateResponse,
-    EmailCheckRequest,
-    EmailCheckResponse,
-    UserCreateRequest,
     UserResponse,
     UserUpdateRequest,
     UserListWithRolesResponse,
@@ -33,6 +28,7 @@ async def me(
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
+    user: Annotated[UserMeResponse, Depends(get_current_user)],
     user_id: int,
     user_service: UserService = Depends(get_user_service),
 ):
@@ -45,6 +41,7 @@ async def get_user(
 
 @router.get("/", response_model=UserListWithRolesResponse)
 async def list_users(
+    user: Annotated[UserMeResponse, Depends(get_current_user)],
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     is_active: Optional[bool] = Query(None),
@@ -63,6 +60,7 @@ async def list_users(
 
 @router.patch("/{user_id}", response_model=UserResponse)
 async def update_user(
+    user: Annotated[UserMeResponse, Depends(get_current_user)],
     user_id: int,
     request: UserUpdateRequest,
     user_service: UserService = Depends(get_user_service),
@@ -90,6 +88,7 @@ async def update_user(
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
+    user: Annotated[UserMeResponse, Depends(get_current_user)],
     user_id: int,
     user_service: UserService = Depends(get_user_service),
 ):
@@ -98,61 +97,3 @@ async def delete_user(
         await user_service.delete_user(user_id)
     except UserNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-
-
-@router.post("/{user_id}/deactivate", response_model=UserResponse)
-async def deactivate_user(
-    user_id: int,
-    user_service: UserService = Depends(get_user_service),
-):
-    """Деактивация пользователя."""
-    try:
-        return await user_service.deactivate_user(user_id)
-    except UserNotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-
-
-@router.post("/{user_id}/activate", response_model=UserResponse)
-async def activate_user(
-    user_id: int,
-    user_service: UserService = Depends(get_user_service),
-):
-    """Активация пользователя."""
-    try:
-        return await user_service.activate_user(user_id)
-    except UserNotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-
-
-# ===== Специализированные endpoints =====
-
-
-@router.post("/check-emails", response_model=EmailCheckResponse)
-async def check_emails(
-    request: EmailCheckRequest,
-    user_service: UserService = Depends(get_user_service),
-):
-    """Проверка доступности email."""
-    availability = await user_service.check_emails_availability(request.emails)
-    return EmailCheckResponse(emails=availability)
-
-
-@router.post(
-    "/bulk", response_model=BulkCreateResponse, status_code=status.HTTP_201_CREATED
-)
-async def bulk_create_users(
-    request: BulkCreateRequest,
-    user_service: UserService = Depends(get_user_service),
-):
-    """Массовое создание пользователей."""
-    dtos = [
-        UserCreateRequest(
-            email=u.email,
-            password=u.password,
-            first_name=u.first_name,
-            last_name=u.last_name,
-        )
-        for u in request.users
-    ]
-    result = await user_service.bulk_create_users(dtos)
-    return result

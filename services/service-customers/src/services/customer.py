@@ -181,11 +181,6 @@ class CustomerService:
         logger.info(f"Customer {customer_id} unbanned")
         return CustomerResponseDTO(**updated_dict)
 
-    async def check_emails_availability(self, emails: List[str]) -> Dict[str, bool]:
-        """Проверка доступности email"""
-        existing = await self.customer_dao.check_multiple_emails_exist(emails)
-        return {email: not exists for email, exists in existing.items()}
-
     async def _send_welcome_email(self, customer_dict: dict) -> None:
         logger.info(f"Sending welcome email to {customer_dict['email']}")
 

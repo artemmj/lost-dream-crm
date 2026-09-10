@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, StringConstraints, ConfigDict
 
 
 # === PERMISSIONS ===
+
 class PermissionCreate(BaseModel):
     code: str = Field(..., min_length=3, max_length=100, pattern=r"^[a-z][a-z0-9_:]*$")
     description: str | None = Field(None, max_length=255)
@@ -44,6 +45,7 @@ class RoleBrief(BaseModel):
 
 
 # === ROLES ===
+
 class RoleCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=50)
     permission_ids: list[int] = Field(default_factory=list)
@@ -69,11 +71,14 @@ class RoleListResponse(BaseModel):
 
 
 # === USER ROLES ASSIGNMENT ===
+
 class UserRoleAssign(BaseModel):
     role_ids: list[int] = Field(
         ..., description="Полный список ID ролей для пользователя"
     )
 
+
+# === USERS ===
 
 class AuthUser(BaseModel):
     email: str
@@ -82,7 +87,7 @@ class AuthUser(BaseModel):
 
 class UserCreateRequest(BaseModel):
     email: str = Field(..., min_length=5, example="john@example.com")
-    password: Annotated[str, StringConstraints(min_length=8, max_length=128)]
+    password: Annotated[str, StringConstraints(min_length=4, max_length=128)]
     first_name: str = Field(..., min_length=1, max_length=100, example="John")
     last_name: str = Field(..., min_length=1, max_length=100, example="Doe")
 
@@ -120,25 +125,6 @@ class UserListResponse(BaseModel):
     total: int
     page: int
     per_page: int
-
-
-class BulkCreateRequest(BaseModel):
-    users: List[UserCreateRequest] = Field(..., min_items=1, max_items=100)
-
-
-class BulkCreateResponse(BaseModel):
-    created: int
-    skipped: int
-    skipped_emails: List[str]
-    users: List[UserResponse]
-
-
-class EmailCheckRequest(BaseModel):
-    emails: List[str] = Field(..., min_items=1, max_items=50)
-
-
-class EmailCheckResponse(BaseModel):
-    emails: dict
 
 
 class LoginResponse(BaseModel):

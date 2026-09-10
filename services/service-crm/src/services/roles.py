@@ -1,5 +1,8 @@
+# services/role_service.py
+
+from typing import Optional
+
 from src.dao.roles import RoleDAO
-from src.models import Role
 
 
 class RoleService:
@@ -7,41 +10,30 @@ class RoleService:
         self.dao = role_dao
 
     async def get_list(
-        self, page: int, per_page: int, search: str | None = None
-    ) -> tuple[list[Role], int]:
+        self, page: int, per_page: int, search: Optional[str] = None
+    ) -> tuple[list[dict], int]:
+        """Список ролей с пермишенами."""
         return await self.dao.get_list(page, per_page, search)
 
-    async def create(self, name: str, permission_ids: list[int] | None = None) -> Role:
-        if await self.dao.exists_by_name(name):
-            raise ValueError(f"Role '{name}' already exists")
+    async def get_by_id(self, role_id: int) -> Optional[dict]:
+        """Получение роли по ID."""
+        return await self.dao.get_by_id(role_id)
 
-        if permission_ids:
-            perms = await self.dao.get_permissions_by_ids(permission_ids)
-            if len(perms) != len(permission_ids):
-                raise ValueError("Some permission IDs do not exist")
-
+    async def create(self, name: str, permission_ids: Optional[list[int]] = None) -> dict:
+        """Создание роли."""
         return await self.dao.create(name, permission_ids)
 
     async def update(
         self,
         role_id: int,
-        name: str | None = None,
-        permission_ids: list[int] | None = None,
-    ) -> Role:
-        if name is not None and await self.dao.exists_by_name(name, exclude_id=role_id):
-            raise ValueError(f"Role '{name}' already exists")
-
-        if permission_ids is not None:
-            perms = await self.dao.get_permissions_by_ids(permission_ids)
-            if len(perms) != len(permission_ids):
-                raise ValueError("Some permission IDs do not exist")
-
-        role = await self.dao.update(role_id, name, permission_ids)
-        if not role:
-            raise LookupError("Role not found")
-        return role
+        name: Optional[str] = None,
+        permission_ids: Optional[list[int]] = None,
+    ) -> Optional[dict]:
+        """Обновление роли."""
+        return await self.dao.update(role_id, name, permission_ids)
 
     async def delete(self, role_id: int) -> None:
+        """Удаление роли."""
         deleted = await self.dao.delete_by_id(role_id)
         if not deleted:
             raise LookupError("Role not found")

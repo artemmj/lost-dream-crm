@@ -19,25 +19,5 @@ export const usersApi = {
 
     deleteUser(id) {
         return crmApiClient.delete(`/users/${id}`)
-    },
-
-    deactivateUser(id) {
-        return crmApiClient.post(`/users/${id}/deactivate`)
-    },
-
-    banUser(id) {
-        return crmApiClient.post(`/users/${id}/ban`)
-    },
-
-    unbanUser(id) {
-        return crmApiClient.post(`/users/${id}/unban`)
-    },
-
-    checkEmails(emails) {
-        return crmApiClient.post('/users/check-emails', { emails })
-    },
-
-    activateUser(id) {
-        return crmApiClient.post(`/users/${id}/activate`)
-    },
+    }
 }
