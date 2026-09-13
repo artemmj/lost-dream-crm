@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from src.dependencies.auth_dependency import get_current_user
-from src.dependencies.permissions_dependency import RequirePermission
+from src.dependencies.permissions import RequirePermission
 from src.schemas.user import UserMeResponse
 from src.schemas.user import (
     UserResponse,

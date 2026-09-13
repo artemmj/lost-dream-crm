@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from src.dependencies.permissions_dependency import RequirePermission
+from src.dependencies.permissions import RequirePermission
 from src.schemas.user import UserMeResponse
 
 router = APIRouter(prefix="/test", tags=["Test"])

@@ -6,6 +6,11 @@ from pydantic import BaseModel, Field, StringConstraints
 from src.schemas.roles import RoleBrief
 
 
+class AuthUser(BaseModel):
+    email: str
+    password: Annotated[str, StringConstraints(min_length=2, max_length=128)]
+
+
 class UserCreateRequest(BaseModel):
     email: str = Field(..., min_length=5, example="john@example.com")
     password: Annotated[str, StringConstraints(min_length=4, max_length=128)]
@@ -15,6 +20,7 @@ class UserCreateRequest(BaseModel):
 
 class UserUpdateRequest(BaseModel):
     email: Optional[str] = None
+    # password_hash: Optional[str] = Field(None, min_length=8)
     first_name: Optional[str] = Field(None, min_length=1, max_length=100)
     last_name: Optional[str] = Field(None, min_length=1, max_length=100)
     is_active: Optional[bool] = None
@@ -45,6 +51,12 @@ class UserListResponse(BaseModel):
     total: int
     page: int
     per_page: int
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+
+    model_config = {"from_attributes": True}
 
 
 class UserMeResponse(BaseModel):

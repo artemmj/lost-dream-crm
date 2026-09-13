@@ -1,5 +1,3 @@
-# services/role_service.py
-
 from typing import Optional
 
 from src.dao.roles import RoleDAO

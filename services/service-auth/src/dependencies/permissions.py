@@ -1,6 +1,6 @@
 from fastapi import Depends, HTTPException, status
 
-from src.dependencies.auth_dependency import get_current_user
+from src.dependencies.auth import get_current_user
 from src.dependencies.db_dependency import DBDependency
 from src.dao.permissions import PermissionDAO
 from src.dao.roles import RoleDAO
@@ -9,9 +9,6 @@ from src.services.permissions import PermissionService
 from src.services.roles import RoleService
 from src.services.user_role import UserRoleService
 from src.schemas.user import UserMeResponse
-
-
-# ===== Фабрики сервисов =====
 
 
 def get_permission_service(
@@ -33,9 +30,6 @@ def get_user_role_service(
 ) -> UserRoleService:
     """Фабрика сервиса назначения ролей пользователям"""
     return UserRoleService(user_role_dao=UserRoleDAO(db))
-
-
-# ===== Проверка пермишенов =====
 
 
 class RequirePermission:

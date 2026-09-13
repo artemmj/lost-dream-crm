@@ -38,6 +38,15 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  service-auth:
+    build: ./services/service-auth
+    ports: ["8003:8000"]
+    env_file: ./services/service-auth/.env
+    depends_on:
+      db-crm:
+        condition: service_started
+    restart: unless-stopped
+
   service-customers:
     build: ./services/service-customers
     ports: ["8002:8000"]

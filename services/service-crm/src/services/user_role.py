@@ -1,7 +1,3 @@
-# services/user_role.py
-
-from typing import Optional
-
 from src.dao.user_roles import UserRoleDAO
 
 

@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Tuple
 
-from sqlalchemy import exists, select, update, func, or_
+from sqlalchemy import exists, select, func, or_
 from sqlalchemy.orm import selectinload
 
 from src.dao.base import BaseDAO
@@ -14,16 +14,6 @@ class UserDAO(BaseDAO[User]):
 
     def __init__(self, db: DBDependency):
         super().__init__(db)
-
-    async def confirm(self, email: str) -> None:
-        async with self.db.session_scope() as session:
-            query = (
-                update(self.model)
-                .where(self.model.email == email)
-                .values(is_verified=True, is_active=True)
-            )
-            await session.execute(query)
-            await session.commit()
 
     async def email_exists(self, email: str) -> bool:
         """Проверка существования email"""
@@ -140,7 +130,6 @@ class UserDAO(BaseDAO[User]):
             )
             users = result.scalars().unique().all()
 
-            # 👇 Сериализуем ВНУТРИ сессии, пока объекты привязаны
             items = [
                 {
                     "id": user.id,

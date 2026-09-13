@@ -1,31 +1,29 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from src.dependencies.permissions_dependency import (
+from src.dependencies.permissions import (
     Perm,
     get_permission_service,
     get_role_service,
     get_user_role_service,
 )
-from src.services.permissions import PermissionService
-from src.services.roles import RoleService
-from src.services.user_role import UserRoleService
-from src.schemas.user import (
+from src.schemas.permissions import (
     PermissionCreate,
     PermissionUpdate,
     PermissionRead,
     PermissionListResponse,
+)
+from src.schemas.roles import (
     RoleCreate,
     RoleUpdate,
     RoleRead,
     RoleListResponse,
-    UserMeResponse,
-    UserRoleAssign,
 )
+from src.services.roles import RoleService
+from src.services.permissions import PermissionService
+from src.services.user_role import UserRoleService
+from src.schemas.user import UserMeResponse, UserRoleAssign
 
 router = APIRouter(prefix="/perms", tags=["Permissions & Roles"])
-
-
-# ===================== PERMISSIONS =====================
 
 
 @router.get("/permissions", response_model=PermissionListResponse)
@@ -83,9 +81,6 @@ async def delete_permission(
         raise HTTPException(status_code=404, detail=str(e))
 
 
-# ===================== ROLES =====================
-
-
 @router.get("/roles", response_model=RoleListResponse)
 async def list_roles(
     current_user: UserMeResponse = Perm("list_roles"),
@@ -141,9 +136,6 @@ async def delete_role(
         await service.delete(role_id)
     except LookupError as e:
         raise HTTPException(status_code=404, detail=str(e))
-
-
-# ===================== USER ROLE ASSIGNMENT =====================
 
 
 @router.put("/users/{user_id}/roles", response_model=list[RoleRead])

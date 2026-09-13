@@ -1,20 +1,12 @@
 from typing import Dict, List, Optional, Tuple
 import logging
 
-from fastapi import HTTPException, status
-from fastapi.responses import JSONResponse
-from itsdangerous import BadSignature, URLSafeTimedSerializer
+from itsdangerous import URLSafeTimedSerializer
 
 from src.models.user import User
-from src.schemas.user import LoginResponse, UserMeResponse
 from src.dependencies.redis_dependency import RedisDependency
 from src.handlers.auth import AuthHandler
-from src.schemas.user import (
-    AuthUser,
-    UserCreateRequest,
-    UserResponse,
-    UserUpdateRequest,
-)
+from src.schemas.user import UserResponse, UserUpdateRequest
 from src.dao.user import UserDAO
 from src.settings import settings
 
@@ -50,58 +42,6 @@ class UserService:
     ) -> None:
         async with self.redis.get_client() as client:
             await client.set(f"{user_id}:{session_id}", token)
-
-    async def register_user(self, dto: UserCreateRequest) -> UserResponse:
-        """Регистрация нового пользователя"""
-        if await self.user_dao.email_exists(dto.email):
-            raise UserAlreadyExistsError(
-                f"User with email '{dto.email}' already exists"
-            )
-
-        hashed_password = await self.auth_handler.get_password_hash(dto.password)
-        new_user = UserCreateRequest(
-            email=dto.email,
-            password=hashed_password,
-            first_name=dto.first_name,
-            last_name=dto.last_name,
-        )
-        new_user_dict = new_user.__dict__
-        new_user_dict["password_hash"] = new_user_dict.pop("password")
-        user_dict = await self.user_dao.create(**new_user_dict)
-        confirmation_token = self.serializer.dumps(dto.email)
-        confirmation_url = f":url/auth/register_confirm?token={confirmation_token}"
-        print(f"SEND Message to {dto.email}: {confirmation_url}")
-        print(f"User registered: {user_dict['id']} ({user_dict['email']})")
-        return UserResponse(**user_dict)
-
-    async def confirm_user(self, token: str) -> None:
-        try:
-            email = self.serializer.loads(token, max_age=3600)
-        except BadSignature:
-            raise HTTPException(status_code=400, detail="Bad token")
-        await self.user_dao.confirm(email=email)
-
-    async def login(self, user: AuthUser) -> LoginResponse:
-        exist_user = await self.user_dao.get_by_email(email=user.email)
-        if exist_user is None or not await self.auth_handler.verify_password(
-            hashed_password=exist_user["password_hash"], raw_password=user.password
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Wrong email or password",
-            )
-        token, session_id = await self.auth_handler.create_access_token(
-            user_id=exist_user["id"]
-        )
-        await self._store_access_token(
-            token=token, user_id=exist_user["id"], session_id=session_id
-        )
-        return LoginResponse(access_token=token)
-
-    async def logout_user(self, user: UserMeResponse) -> JSONResponse:
-        await self.revoke_access_token(user_id=user.id, session_id=user.session_id)
-        response = JSONResponse(content={"message": "Logged out"})
-        return response
 
     async def get_user(self, user_id: int) -> UserResponse:
         """Получение пользователя по ID"""

@@ -1,5 +1,3 @@
-# dao/role_dao.py
-
 from typing import Dict, List, Optional, Tuple
 from sqlalchemy import exists, select, func, delete
 from sqlalchemy.orm import selectinload
@@ -198,7 +196,7 @@ class RoleDAO(BaseDAO[Role]):
             try:
                 await session.flush()
             except IntegrityError:
-                raise ValueError(f"Role name already exists")
+                raise ValueError("Role name already exists")
 
             # Перечитываем с пермишенами
             refreshed_result = await session.execute(
