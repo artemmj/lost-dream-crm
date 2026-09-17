@@ -5,7 +5,8 @@ services:
       POSTGRES_DB: db-crm
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    ports: ["5432:5432"]
+    # Наружу порты БД не публикуем: доступ только внутри compose-сети
+    expose: ["5432"]
     volumes: [pg_crm_data:/var/lib/postgresql]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d db-crm"]
@@ -20,7 +21,8 @@ services:
       POSTGRES_DB: db-customers
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    ports: ["5433:5432"]
+    # Наружу порты БД не публикуем: доступ только внутри compose-сети
+    expose: ["5432"]
     volumes: [pg_customers_data:/var/lib/postgresql]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d db-customers"]
@@ -33,31 +35,26 @@ services:
     build: ./services/service-crm
     ports: ["8001:8000"]
     env_file: ./services/service-crm/.env
-    depends_on:
-      db-crm:
-        condition: service_started
+    # Готовность БД не ждём: start.sh сам ретраит миграции до 30 раз
+    depends_on: [db-crm, redis]
     restart: unless-stopped
 
   service-auth:
     build: ./services/service-auth
     ports: ["8003:8000"]
     env_file: ./services/service-auth/.env
-    depends_on:
-      db-crm:
-        condition: service_started
+    depends_on: [db-crm, redis]
     restart: unless-stopped
 
   service-customers:
     build: ./services/service-customers
     ports: ["8002:8000"]
     env_file: ./services/service-customers/.env
-    depends_on:
-      db-customers:
-        condition: service_started
+    depends_on: [db-customers]
     restart: unless-stopped
 
   frontend:
-    build: 
+    build:
       context: ./frontend
       target: development
     ports: ["3000:3000"]
@@ -67,7 +64,7 @@ services:
       - /app/node_modules             # Анонимный volume, чтобы не перезаписывать node_modules из хоста
     environment:
       - CHOKIDAR_USEPOLLING=true      # Для корректной работы hot-reload на некоторых ОС
-    depends_on: 
+    depends_on:
       - nginx
 
   nginx:
@@ -81,20 +78,14 @@ services:
     image: redis:7-alpine
     container_name: redis
     restart: unless-stopped
-    # CHANGED: Redis не должен быть доступен извне в продакшене
+    # Redis не должен быть доступен извне в продакшене
     expose:
       - "6379"
-    command: redis-server --appendonly yes
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-# volumes:
-  # zk_data:
-  # kafka_data:
-  # ...
+    volumes:
+      - redis_data:/data              # Персистентность AOF между пересозданиями контейнера
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "redispass"]
 
 volumes:
   pg_crm_data: {}
   pg_customers_data: {}
+  redis_data: {}

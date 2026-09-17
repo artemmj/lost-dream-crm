@@ -89,3 +89,8 @@ class DBDependency:
     async def close(self) -> None:
         """Graceful shutdown - закрывает пул соединений"""
         await self._engine.dispose()
+
+
+# Синглтон на всё приложение: engine и пул соединений создаются один раз
+# при старте процесса, а не на каждый запрос (см. Depends-фабрики).
+db_dependency = DBDependency()

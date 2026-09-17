@@ -1,9 +1,8 @@
-from collections.abc import AsyncGenerator
 from fastapi import Depends, HTTPException
 
 from src.dao.user import UserDAO
-from src.dependencies.db import DBDependency
-from src.dependencies.redis import RedisDependency
+from src.dependencies.redis import redis_dependency
+from src.dependencies.db import db_dependency
 from src.handlers.auth import AuthHandler
 from src.schemas.auth import AuthUser, LoginResponse, UserCreateRequest
 
@@ -39,30 +38,28 @@ class AuthService:
             raise HTTPException(status_code=403, detail="Account disabled")
 
         token, session_id = await self.auth_handler.create_access_token(user_id=user.id)
-        await self.redis.set(f"{user.id}:{session_id}", token, ex=3600)
+        async with self.redis.get_client() as client:
+            await client.set(f"{user.id}:{session_id}", token, ex=3600)
 
         return LoginResponse(access_token=token)
 
     async def logout(self, user_id: int, session_id: str):
-        await self.redis.delete(f"{user_id}:{session_id}")
+        async with self.redis.get_client() as client:
+            await client.delete(f"{user_id}:{session_id}")
         return {"message": "Logged out"}
 
 
-async def get_auth_service(
-    db: DBDependency = Depends(DBDependency),
-    redis_client: RedisDependency = Depends(RedisDependency),
-) -> AsyncGenerator[AuthService, None]:
-    """Создаёт AuthService с DAO нового стиля."""
-    user_dao = UserDAO(db=db)  # 👈 Передаём DBDependency, а не сессию
-    auth_handler = AuthHandler()
+def get_auth_service(
+    auth_handler: AuthHandler = Depends(AuthHandler),
+) -> AuthService:
+    """Создаёт AuthService с DAO нового стиля.
 
-    service = AuthService(
+    db и redis берутся из модульных синглтонов: движок SQLAlchemy
+    и пулы Redis создаются один раз на процесс, а не на каждый запрос.
+    """
+    user_dao = UserDAO(db=db_dependency)
+    return AuthService(
         user_dao=user_dao,
         auth_handler=auth_handler,
-        redis_client=redis_client,
+        redis_client=redis_dependency,
     )
-
-    try:
-        yield service
-    finally:
-        pass

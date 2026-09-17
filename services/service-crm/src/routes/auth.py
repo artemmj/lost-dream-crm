@@ -4,15 +4,18 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 
 from src.dependencies.auth_dependency import get_current_user
-from src.schemas.user import LoginResponse, UserMeResponse
 from src.schemas.user import (
     AuthUser,
     UserCreateRequest,
     UserResponse,
+    UserMeResponse,
+    LoginResponse,
 )
 from src.services.user import (
     UserService,
     UserAlreadyExistsError,
+    InvalidCredentialsError,
+    UserDisabledError,
 )
 from src.dependencies.user_dependency import get_user_service
 
@@ -51,7 +54,12 @@ async def confirm_registration(
     path="/login", response_model=LoginResponse, status_code=status.HTTP_200_OK
 )
 async def login(user: AuthUser, service: UserService = Depends(get_user_service)):
-    return await service.login(user=user)
+    try:
+        return await service.login(user=user)
+    except InvalidCredentialsError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+    except UserDisabledError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
 
 
 @router.get(path="/logout", status_code=status.HTTP_200_OK)

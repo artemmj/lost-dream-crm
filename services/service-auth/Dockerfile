@@ -7,7 +7,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-COPY pyproject.toml uv.lock alembic.ini start.sh .env ./
+# .env не копируется в образ: секреты передаются в рантайме через
+# docker compose env_file (файл также исключён через .dockerignore)
+COPY pyproject.toml uv.lock alembic.ini start.sh ./
 COPY src/ ./src/
 
 RUN uv sync --frozen

@@ -4,7 +4,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, EmailStr, Field
 
-from src.dependencies.db_dependency import DBDependency
+from src.dependencies.db_dependency import db_dependency
 from src.dao.customer import CustomerDAO
 from src.services.customer import (
     CustomerService,
@@ -44,7 +44,7 @@ class CustomerResponse(BaseModel):
     updated_at: datetime.datetime
     email: str
     phone: str
-    password_hash: str
+    # password_hash намеренно не отдаётся наружу (безопасность)
     first_name: str
     last_name: str
     middle_name: str
@@ -73,9 +73,13 @@ class BulkCreateResponse(BaseModel):
 # ===== Dependency Injection =====
 
 
-def get_customer_service(db: DBDependency = Depends()) -> CustomerService:
-    """Фабрика сервиса с правильным графом зависимостей"""
-    customer_dao = CustomerDAO(db)
+def get_customer_service() -> CustomerService:
+    """Фабрика сервиса с правильным графом зависимостей.
+
+    db — модульный синглтон: движок SQLAlchemy создаётся один раз
+    на процесс, а не на каждый запрос.
+    """
+    customer_dao = CustomerDAO(db_dependency)
     return CustomerService(customer_dao=customer_dao)
 
 

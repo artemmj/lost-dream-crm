@@ -14,9 +14,7 @@ class UserDAO(BaseDAO[User]):
 
     async def get_by_email(self, email: str) -> Optional[User]:
         async with self.db.read_only_scope() as session:
-            result = await session.execute(
-                select(User).where(User.email == email)
-            )
+            result = await session.execute(select(User).where(User.email == email))
             return result.scalar_one_or_none()
 
     async def confirm_email(self, email: str) -> None:

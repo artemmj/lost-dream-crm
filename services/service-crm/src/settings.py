@@ -29,6 +29,7 @@ class RedisSettings(BaseSettings):
     redis_host: str = Field(default="localhost", alias="REDIS_HOST")
     redis_port: int = Field(default=6379, alias="REDIS_PORT")
     redis_db: int = Field(default=0, alias="REDIS_DB")
+    redis_password: SecretStr = Field(default="", alias="REDIS_PASSWORD")
 
     model_config = SettingsConfigDict(
         env_file="../.env",
@@ -38,7 +39,13 @@ class RedisSettings(BaseSettings):
 
     @property
     def redis_url(self):
-        return f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}"
+        # redis://[:password@]host:port/db — пароль опционален (пустая строка = без auth)
+        password_part = (
+            f":{self.redis_password.get_secret_value()}@"
+            if self.redis_password.get_secret_value()
+            else ""
+        )
+        return f"redis://{password_part}{self.redis_host}:{self.redis_port}/{self.redis_db}"
 
 
 class Settings(BaseSettings):

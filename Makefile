@@ -1,8 +1,9 @@
-.PHONY: up down build logs test lint kafka-ui
+.PHONY: up down downup build logs test lint db-reset help
 
-# Переменные для удобства
 COMPOSE = docker compose
-SERVICES = auth crm customers accounting external-api ws-gateway frontend nginx
+
+# Имена сервисов должны совпадать с docker-compose.yml
+BACKEND_SERVICES = service-crm service-auth service-customers
 
 up: ## Запустить всю инфраструктуру и сервисы
 	$(COMPOSE) up -d --build
@@ -10,8 +11,9 @@ up: ## Запустить всю инфраструктуру и сервисы
 down: ## Остановить все контейнеры
 	$(COMPOSE) down
 
-downup: ## Пересобрать образы с перезапуском
+downup: ## Пересоздать контейнеры с пересборкой образов
 	$(COMPOSE) down
+	$(COMPOSE) up -d --build
 
 build: ## Пересобрать образы без запуска
 	$(COMPOSE) build
@@ -19,23 +21,19 @@ build: ## Пересобрать образы без запуска
 logs: ## Просмотр логов всех сервисов (Ctrl+C для выхода)
 	$(COMPOSE) logs -f --tail=100
 
-test: ## Запуск интеграционных тестов с Testcontainers
-	$(COMPOSE) run --rm auth pytest -v
-	$(COMPOSE) run --rm crm pytest -v
-	$(COMPOSE) run --rm customers pytest -v
+test: ## Запуск тестов всех backend-сервисов (uv run pytest)
+	$(COMPOSE) run --rm service-crm uv run pytest -v
+	$(COMPOSE) run --rm service-auth uv run pytest -v
+	$(COMPOSE) run --rm service-customers uv run pytest -v
 
-lint: ## Проверка кода (ruff + mypy)
-	$(COMPOSE) run --rm auth ruff check .
-	$(COMPOSE) run --rm crm mypy app/
+lint: ## Проверка кода линтером (uv run ruff check)
+	$(COMPOSE) run --rm service-crm uv run ruff check .
+	$(COMPOSE) run --rm service-auth uv run ruff check .
+	$(COMPOSE) run --rm service-customers uv run ruff check .
 
-kafka-ui: ## Открыть Kafka UI в браузере
-	open http://localhost:8080 || xdg-open http://localhost:8080
-
-db-reset: ## Сброс БД (ОПАСНО: удаляет все данные)
+db-reset: ## Сброс БД (ОПАСНО: удаляет все данные, включая тома)
 	$(COMPOSE) down -v
-	$(COMPOSE) up -d postgres
-	sleep 3
-	$(COMPOSE) exec postgres psql -U postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname LIKE '%_db';"
+	$(COMPOSE) up -d db-crm db-customers redis
 
 help: ## Показать справку
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'

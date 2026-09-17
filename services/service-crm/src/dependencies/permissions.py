@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException, status
 
 from src.dependencies.auth_dependency import get_current_user
-from src.dependencies.db_dependency import DBDependency
+from src.dependencies.db_dependency import db_dependency
 from src.dao.permissions import PermissionDAO
 from src.dao.roles import RoleDAO
 from src.dao.user_roles import UserRoleDAO
@@ -11,25 +11,19 @@ from src.services.user_role import UserRoleService
 from src.schemas.user import UserMeResponse
 
 
-def get_permission_service(
-    db: DBDependency = Depends(DBDependency),
-) -> PermissionService:
-    """Фабрика сервиса пермишенов"""
-    return PermissionService(permission_dao=PermissionDAO(db))
+def get_permission_service() -> PermissionService:
+    """Фабрика сервиса пермишенов (db — модульный синглтон)"""
+    return PermissionService(permission_dao=PermissionDAO(db_dependency))
 
 
-def get_role_service(
-    db: DBDependency = Depends(DBDependency),
-) -> RoleService:
-    """Фабрика сервиса ролей"""
-    return RoleService(role_dao=RoleDAO(db))
+def get_role_service() -> RoleService:
+    """Фабрика сервиса ролей (db — модульный синглтон)"""
+    return RoleService(role_dao=RoleDAO(db_dependency))
 
 
-def get_user_role_service(
-    db: DBDependency = Depends(DBDependency),
-) -> UserRoleService:
-    """Фабрика сервиса назначения ролей пользователям"""
-    return UserRoleService(user_role_dao=UserRoleDAO(db))
+def get_user_role_service() -> UserRoleService:
+    """Фабрика сервиса назначения ролей (db — модульный синглтон)"""
+    return UserRoleService(user_role_dao=UserRoleDAO(db_dependency))
 
 
 class RequirePermission:

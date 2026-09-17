@@ -38,20 +38,24 @@ class AuthHandler:
         Создает JWT токен и уникальный ID сессии.
         """
         expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+            seconds=settings.access_token_expire
         )
 
         session_id = str(uuid.uuid4())
 
         to_encode = {
             "sub": str(user_id),  # Standard claim for subject (user ID)
+            # get_current_user читает user_id из токена — дублируем явным claim'ом
+            "user_id": user_id,
             "session_id": session_id,
             "exp": expire,
             "iat": datetime.datetime.now(datetime.timezone.utc),
             "type": "access",
         }
 
-        encoded_jwt = jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
+        encoded_jwt = jwt.encode(
+            to_encode, self.secret_key.get_secret_value(), algorithm=self.algorithm
+        )
         return TokenData(access_token=encoded_jwt, session_id=session_id)
 
     async def decode_access_token(self, token: str) -> dict:
@@ -59,7 +63,9 @@ class AuthHandler:
         Декодирует и валидирует JWT токен.
         """
         try:
-            payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+            payload = jwt.decode(
+                token, self.secret_key.get_secret_value(), algorithms=[self.algorithm]
+            )
             return payload
         except jwt.ExpiredSignatureError:
             raise HTTPException(

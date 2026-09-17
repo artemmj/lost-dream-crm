@@ -61,26 +61,32 @@ async def list_users(
 
 @router.patch("/{user_id}", response_model=UserResponse)
 async def update_user(
-    user: Annotated[UserMeResponse, Depends(get_current_user)],
     user_id: int,
     request: UserUpdateRequest,
+    current_user: UserMeResponse = Depends(RequirePermission("update_user")),
     user_service: UserService = Depends(get_user_service),
 ):
     """
     Частичное обновление пользователя.
     Обновляются только переданные поля.
+
+    Административные поля (is_active, is_banned, is_superuser, is_verified)
+    может менять только суперпользователь.
     """
+    # Защита от эскалации привилегий: админ-поля — только для суперпользователя
+    admin_fields = {"is_active", "is_banned", "is_superuser", "is_verified"}
+    if not current_user.is_superuser:
+        requested_admin = {f for f in admin_fields if getattr(request, f) is not None}
+        if requested_admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "Only superuser can update fields: "
+                    f"{', '.join(sorted(requested_admin))}"
+                ),
+            )
     try:
-        dto = UserUpdateRequest(
-            email=request.email,
-            first_name=request.first_name,
-            last_name=request.last_name,
-            is_active=request.is_active,
-            is_banned=request.is_banned,
-            is_superuser=request.is_superuser,
-            is_verified=request.is_verified,
-        )
-        return await user_service.update_user(user_id, dto)
+        return await user_service.update_user(user_id, request)
     except UserNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except UserAlreadyExistsError as e:
@@ -89,11 +95,11 @@ async def update_user(
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
-    user: Annotated[UserMeResponse, Depends(get_current_user)],
     user_id: int,
+    current_user: UserMeResponse = Depends(RequirePermission("delete_user")),
     user_service: UserService = Depends(get_user_service),
 ):
-    """Удаление пользователя."""
+    """Удаление пользователя. Требует пермишен 'delete_user'."""
     try:
         await user_service.delete_user(user_id)
     except UserNotFoundError as e:

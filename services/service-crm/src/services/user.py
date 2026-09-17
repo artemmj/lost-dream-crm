@@ -6,7 +6,13 @@ from itsdangerous import URLSafeTimedSerializer
 from src.models.user import User
 from src.dependencies.redis_dependency import RedisDependency
 from src.handlers.auth import AuthHandler
-from src.schemas.user import UserResponse, UserUpdateRequest
+from src.schemas.user import (
+    AuthUser,
+    LoginResponse,
+    UserMeResponse,
+    UserResponse,
+    UserUpdateRequest,
+)
 from src.dao.user import UserDAO
 from src.settings import settings
 
@@ -19,6 +25,14 @@ class UserAlreadyExistsError(Exception):
 
 class UserNotFoundError(Exception):
     pass
+
+
+class InvalidCredentialsError(Exception):
+    """Неверный email или пароль при входе."""
+
+
+class UserDisabledError(Exception):
+    """Аккаунт деактивирован или забанен."""
 
 
 class UserService:
@@ -42,6 +56,35 @@ class UserService:
     ) -> None:
         async with self.redis.get_client() as client:
             await client.set(f"{user_id}:{session_id}", token)
+
+    async def login(self, user: AuthUser) -> LoginResponse:
+        """Аутентификация: проверка пароля, выпуск JWT и запись сессии в Redis."""
+        user_dict = await self.user_dao.get_by_email(user.email)
+        if not user_dict or not await self.auth_handler.verify_password(
+            user.password, user_dict["password_hash"]
+        ):
+            raise InvalidCredentialsError("Invalid email or password")
+
+        if not user_dict["is_active"] or user_dict["is_banned"]:
+            raise UserDisabledError("Account is disabled or banned")
+
+        user_id = int(user_dict["id"])
+        token_data = await self.auth_handler.create_access_token(user_id=user_id)
+        await self._store_access_token(
+            token=token_data.access_token,
+            user_id=user_id,
+            session_id=token_data.session_id,
+        )
+
+        logger.info(f"User {user_id} logged in")
+        return LoginResponse(access_token=token_data.access_token)
+
+    async def logout_user(self, user: UserMeResponse) -> dict:
+        """Выход: инвалидация сессии пользователя в Redis."""
+        if user.session_id:
+            await self.revoke_access_token(user_id=user.id, session_id=user.session_id)
+        logger.info(f"User {user.id} logged out")
+        return {"message": "Logged out"}
 
     async def get_user(self, user_id: int) -> UserResponse:
         """Получение пользователя по ID"""
