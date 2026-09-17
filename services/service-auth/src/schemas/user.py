@@ -34,7 +34,7 @@ class UserResponse(BaseModel):
     created_at: datetime.datetime
     updated_at: datetime.datetime
     email: str
-    password_hash: str
+    # password_hash намеренно не отдаётся наружу (безопасность)
     first_name: str
     last_name: str
     is_active: bool

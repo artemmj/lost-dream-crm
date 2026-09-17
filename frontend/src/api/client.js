@@ -39,5 +39,6 @@ export function createApiClient(servicePath) {
 
 export const crmApiClient = createApiClient('/api/v1/crm')
 export const customersApiClient = createApiClient('/api/v1/customers')
+export const authApiClient = createApiClient('/api/v1/auth')
 
 export default crmApiClient

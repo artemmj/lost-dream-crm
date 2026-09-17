@@ -49,8 +49,10 @@ class RedisSettings(BaseSettings):
 
 
 class Settings(BaseSettings):
-    secret_key: SecretStr = Field(default="", alias="SECRET_KEY")
-    access_token_expire: int = Field(default=120, alias="ACCESS_TOKEN_EXPIRE")
+    # URL service-auth для валидации токенов и проверки пермишенов
+    auth_service_url: str = Field(
+        default="http://service-auth:8000", alias="AUTH_SERVICE_URL"
+    )
 
     db_settings: DBSettings = DBSettings()
     redis_settings: RedisSettings = RedisSettings()

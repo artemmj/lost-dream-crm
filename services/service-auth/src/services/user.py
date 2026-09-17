@@ -1,8 +1,7 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 import logging
 
 from fastapi import HTTPException, status
-from fastapi.responses import JSONResponse
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 
 from src.models.user import User
@@ -79,16 +78,21 @@ class UserService:
             email = self.serializer.loads(token, max_age=3600)
         except BadSignature:
             raise HTTPException(status_code=400, detail="Bad token")
-        await self.user_dao.confirm(email=email)
+        await self.user_dao.confirm_email(email=email)
 
     async def login(self, user: AuthUser) -> LoginResponse:
         exist_user = await self.user_dao.get_by_email(email=user.email)
         if exist_user is None or not await self.auth_handler.verify_password(
-            hashed_password=exist_user["password_hash"], raw_password=user.password
+            user.password, exist_user["password_hash"]
         ):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Wrong email or password",
+            )
+        if not exist_user["is_active"] or exist_user["is_banned"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account is disabled or banned",
             )
         token, session_id = await self.auth_handler.create_access_token(
             user_id=exist_user["id"]
@@ -98,10 +102,9 @@ class UserService:
         )
         return LoginResponse(access_token=token)
 
-    async def logout_user(self, user: UserMeResponse) -> JSONResponse:
+    async def logout_user(self, user: UserMeResponse) -> dict:
         await self.revoke_access_token(user_id=user.id, session_id=user.session_id)
-        response = JSONResponse(content={"message": "Logged out"})
-        return response
+        return {"message": "Logged out"}
 
     async def get_user(self, user_id: int) -> UserResponse:
         """Получение пользователя по ID"""
@@ -120,12 +123,6 @@ class UserService:
     async def get_user_with_roles(self, user_id: int) -> Optional[User]:
         """Получение пользователя с ролями и пермишенами."""
         return await self.user_dao.get_by_id_with_roles(user_id)
-
-    async def get_users_with_roles(
-        self, page: int, per_page: int, search: Optional[str] = None
-    ) -> Tuple[List[Dict], int]:
-        """Список пользователей с ролями."""
-        return await self.user_dao.get_list_with_roles(page, per_page, search)
 
     async def _revoke_user_sessions(self, user_id: int) -> None:
         logger.info(f"Revoking sessions for user {user_id}")

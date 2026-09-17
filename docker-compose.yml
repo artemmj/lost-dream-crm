@@ -35,14 +35,16 @@ services:
     build: ./services/service-crm
     ports: ["8001:8000"]
     env_file: ./services/service-crm/.env
-    # Готовность БД не ждём: start.sh сам ретраит миграции до 30 раз
-    depends_on: [db-crm, redis]
+    # Готовность БД не ждём: start.sh сам ретраит миграции до 30 раз.
+    # Redis не нужен: сессии и валидация токенов — в service-auth.
+    depends_on: [db-crm]
     restart: unless-stopped
 
   service-auth:
     build: ./services/service-auth
     ports: ["8003:8000"]
     env_file: ./services/service-auth/.env
+    # Единственный владелец сессий (Redis) и валидатор токенов/пермишенов
     depends_on: [db-crm, redis]
     restart: unless-stopped
 

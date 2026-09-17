@@ -1,7 +1,15 @@
+from typing import Annotated
+
 from fastapi import Depends, HTTPException, status
 
-from src.dependencies.auth_dependency import get_current_user
+from src.dependencies.auth_dependency import get_token_from_headers
 from src.dependencies.db_dependency import db_dependency
+from src.handlers.auth_proxy import (
+    AuthProxy,
+    TokenInvalidError,
+    PermissionDeniedError,
+    AuthServiceUnavailableError,
+)
 from src.dao.permissions import PermissionDAO
 from src.dao.roles import RoleDAO
 from src.dao.user_roles import UserRoleDAO
@@ -30,6 +38,9 @@ class RequirePermission:
     """
     Зависимость проверки прав по коду пермишена.
 
+    Проверка делегируется service-auth (GET /auth/introspect?permission=...):
+    там валидируется токен, сессия в Redis и наличие пермишена у ролей.
+
     Использование через Perm():
         current_user: UserMeResponse = Perm("list_permissions")
 
@@ -42,31 +53,23 @@ class RequirePermission:
 
     async def __call__(
         self,
-        current_user: UserMeResponse = Depends(get_current_user),
+        token: Annotated[str, Depends(get_token_from_headers)],
+        auth_proxy: AuthProxy = Depends(AuthProxy),
     ) -> UserMeResponse:
-        # Суперпользователь проходит любую проверку
-        if getattr(current_user, "is_superuser", False):
-            return current_user
-
-        if not current_user.is_active:
+        try:
+            user_data = await auth_proxy.authorize(
+                permission_code=self.permission_code, authorization=token
+            )
+        except TokenInvalidError as e:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+        except PermissionDeniedError as e:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        except AuthServiceUnavailableError as e:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User account is inactive",
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e)
             )
 
-        # Собираем коды пермишенов из уже загруженных ролей в /me/
-        user_permissions: set[str] = set()
-        for role in current_user.roles:
-            for perm in role.permissions:
-                user_permissions.add(perm.code)
-
-        if self.permission_code not in user_permissions:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Permission denied: '{self.permission_code}' required",
-            )
-
-        return current_user
+        return UserMeResponse(**user_data)
 
 
 def Perm(code: str):

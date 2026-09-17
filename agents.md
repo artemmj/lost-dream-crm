@@ -24,21 +24,25 @@ lost-dream-crm — микросервисная CRM-система. Целева
 ## 2. Архитектура и сервисы
 
 ```
-Браузер → :80 nginx ─┬─ /api/v1/crm/      → service-crm:8000
-                     ├─ /api/v1/customers/ → service-customers:8000
-                     └─ / (прочее)         → frontend:3000 (Vite dev + HMR)
+Браузер → :80 nginx ─┬─ /api/v1/auth/       → service-auth:8000   (логин/регистрация/сессии/introspect)
+                     ├─ /api/v1/crm/        → service-crm:8000    (пользователи, роли, пермишены)
+                     ├─ /api/v1/customers/  → service-customers:8000
+                     └─ / (прочее)          → frontend:3000 (Vite dev + HMR)
+
+service-crm ──(GET /auth/introspect, Authorization)──► service-auth
+service-auth ──► db-crm + redis (сессии)
 ```
 
-> ⚠️ `service-auth` (:8003) поднят в compose, но **nginx на него не проксирует**, и фронт его не использует — авторизация сейчас живёт внутри service-crm. Подробнее в разделе «Текущее состояние и планы».
+**Аутентификация — единый источник `service-auth`.** Он один выпускает JWT, хранит сессии в Redis и проверяет пермишены. Остальные сервисы **не декодируют токен сами** — они спрашивают у auth через `GET /auth/introspect` (см. раздел 6).
 
-| Сервис | Каталог | Порт (host) | root_path | БД | Назначение |
+| Сервис | Каталог | Порт (host) | root_path | БД / Redis | Назначение |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| service-crm | `services/service-crm` | 8001 | `/api/v1/crm` | db-crm (:5432) | Пользователи, роли, пермишены, **аутентификация (фактически)** |
-| service-customers | `services/service-customers` | 8002 | — | db-customers (:5433) | PII-данные клиентов, изолированная БД |
-| service-auth | `services/service-auth` | 8003 | `/api/v1/auth` | db-crm | Аутентификация (дубль с crm, пока не подключён) |
+| service-auth | `services/service-auth` | 8003 | `/api/v1/auth` | db-crm + redis | **Единственный источник аутентификации**: register/login/logout, сессии (Redis), валидация токена и пермишенов (`/auth/introspect`) |
+| service-crm | `services/service-crm` | 8001 | `/api/v1/crm` | db-crm | Пользователи, роли, пермишены;**владелец схемы** `db-crm` (единственная папка миграций) |
+| service-customers | `services/service-customers` | 8002 | — | db-customers | PII-данные клиентов, изолированная БД |
 | service-commercial | `services/service-commercial` | — | — | — | **Пустой каталог**, планируется |
 | frontend | `frontend` | 3000 | — | — | SPA (Vite dev-сервер, proxy `/api` → nginx) |
-| nginx | `infra/nginx` | 80, 443 | — | — | API Gateway (пока только reverse proxy) |
+| nginx | `infra/nginx` | 80, 443 | — | — | API Gateway (reverse proxy; JWT-терминация пока в сервисах) |
 | redis | — | 6379 (только внутри сети) | — | — | Сессии/access-токены (dev-пароль `redispass`, volume `redis_data`) |
 | db-crm / db-customers | — | 5432 / 5433 (порты НЕ публикуются на хост, только внутри compose-сети) | — | — | PostgreSQL 18 |
 
@@ -140,7 +144,10 @@ npm run build
 ### Проверка работоспособности
 
 - Gateway health: `curl http://localhost/health`
+- AUTH docs (Swagger): `http://localhost/api/v1/auth/docs`
 - CRM docs (Swagger): `http://localhost/api/v1/crm/docs`
+- Логин (seed-пользователи `admin@crm.local` / `john.doe@example.com`, пароль `admin`):
+  `curl -X POST http://localhost/api/v1/auth/login -H 'Content-Type: application/json' -d '{"email":"admin@crm.local","password":"admin"}'`
 
 ---
 

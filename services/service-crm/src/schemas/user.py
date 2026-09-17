@@ -6,15 +6,6 @@ from pydantic import BaseModel, Field, StringConstraints
 from src.schemas.roles import RoleBrief
 
 
-class AuthUser(BaseModel):
-    email: str
-    password: Annotated[str, StringConstraints(min_length=2, max_length=128)]
-
-
-class LoginResponse(BaseModel):
-    access_token: str
-
-
 class UserCreateRequest(BaseModel):
     email: str = Field(..., min_length=5, example="john@example.com")
     password: Annotated[str, StringConstraints(min_length=4, max_length=128)]

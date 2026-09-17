@@ -1,7 +1,6 @@
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.routes.auth import router as auth_router
 from src.routes.user import router as users_router
 from src.routes.permissions import router as perm_router
 from src.routes.testing import router as testing_router
@@ -37,7 +36,6 @@ async def health():
 
 
 app.include_router(router)
-app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(perm_router)
 app.include_router(testing_router)

@@ -1,37 +1,37 @@
-import { crmApiClient } from './client'
+import { authApiClient } from './client'
 
 export const authApi = {
     /**
-     * POST /api/v1/crm/auth/register
+     * POST /api/v1/auth/register
      * @param {{ email: string, password: string, first_name: string, last_name: string }} data
      */
     register(data) {
-        return crmApiClient.post('/auth/register', data)
+        return authApiClient.post('/register', data)
     },
 
     /**
-     * POST /api/v1/crm/auth/login
+     * POST /api/v1/auth/login
      * @param {{ email: string, password: string }} data
-     * @returns token в response.data (уточните поле: access_token / token / и т.д.)
+     * @returns { access_token } в response.data
      */
     login(data) {
-        return crmApiClient.post('/auth/login', data)
+        return authApiClient.post('/login', data)
     },
 
     /**
-     * GET /api/v1/crm/users/me
+     * GET /api/v1/auth/users/me
      * Требует заголовок Authorization с JWT
      */
     getMe() {
-        return crmApiClient.get('/users/me')
+        return authApiClient.get('/users/me')
     },
 
     /**
-     * GET /api/v1/crm/auth/logout
+     * GET /api/v1/auth/logout
      * Инвалидирует сессию на сервере.
      * Токен передаётся через заголовок Authorization (автоматически из интерсептора).
      */
     logout() {
-        return crmApiClient.get('/auth/logout')
+        return authApiClient.get('/logout')
     },
 }

@@ -4,10 +4,12 @@ from fastapi import HTTPException, Depends
 from starlette import status
 from starlette.requests import Request
 
-from src.services.user import UserService
-from src.handlers.auth import AuthHandler
+from src.handlers.auth_proxy import (
+    AuthProxy,
+    TokenInvalidError,
+    AuthServiceUnavailableError,
+)
 from src.schemas.user import UserMeResponse
-from src.dependencies.user_dependency import get_user_service
 
 
 async def get_token_from_headers(request: Request) -> str:
@@ -21,31 +23,16 @@ async def get_token_from_headers(request: Request) -> str:
 
 async def get_current_user(
     token: Annotated[str, Depends(get_token_from_headers)],
-    auth_handler: AuthHandler = Depends(AuthHandler),
-    user_service: UserService = Depends(get_user_service),
+    auth_proxy: AuthProxy = Depends(AuthProxy),
 ) -> UserMeResponse:
-    decoded_token = await auth_handler.decode_access_token(token=token)
-    user_id = decoded_token.get("user_id")
-    session_id = decoded_token.get("session_id")
-    if not await user_service.get_access_token(user_id=user_id, session_id=session_id):
+    """Валидация токена через service-auth (единственный источник аутентификации)."""
+    try:
+        user_data = await auth_proxy.get_current_user(authorization=token)
+    except TokenInvalidError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+    except AuthServiceUnavailableError as e:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token is invalid"
-        )
-    user_data = await user_service.get_user_with_roles(user_id=int(user_id))
-    if user_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e)
         )
 
-    return UserMeResponse(
-        id=user_data["id"],
-        email=user_data["email"],
-        first_name=user_data["first_name"],
-        last_name=user_data["last_name"],
-        is_active=user_data["is_active"],
-        is_banned=user_data["is_banned"],
-        is_superuser=user_data["is_superuser"],
-        is_verified=user_data["is_verified"],
-        session_id=session_id,
-        roles=user_data["roles"],
-    )
+    return UserMeResponse(**user_data)
