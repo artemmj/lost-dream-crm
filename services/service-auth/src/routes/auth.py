@@ -11,7 +11,7 @@ from src.dependencies.auth import get_current_user
 from src.dependencies.user import get_user_service
 from src.services.user import UserService, UserAlreadyExistsError
 
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/register", response_model=UserResponse, status_code=201)

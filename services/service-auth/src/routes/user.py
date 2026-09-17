@@ -6,7 +6,7 @@ from src.dependencies.auth import get_current_user
 router = APIRouter(tags=["Users"])
 
 
-@router.get("/users/me", response_model=UserMeResponse)
+@router.get("/me", response_model=UserMeResponse)
 async def me(
     current_user: UserMeResponse = Depends(get_current_user),
 ) -> UserMeResponse:

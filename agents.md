@@ -24,8 +24,8 @@ lost-dream-crm — микросервисная CRM-система. Целева
 ## 2. Архитектура и сервисы
 
 ```
-Браузер → :80 nginx ─┬─ /api/v1/auth/       → service-auth:8000   (логин/регистрация/сессии/introspect)
-                     ├─ /api/v1/crm/        → service-crm:8000    (пользователи, роли, пермишены)
+Браузер → :80 nginx ─┬─ /api/v1/auth/auth/*     → service-auth:8000   (логин/регистрация/сессии/introspect/me)
+                     ├─ /api/v1/crm/          → service-crm:8000    (пользователи, роли, пермишены)
                      ├─ /api/v1/customers/  → service-customers:8000
                      └─ / (прочее)          → frontend:3000 (Vite dev + HMR)
 
@@ -180,11 +180,12 @@ npm run build
 
 ---
 
-## 6. Аутентификация и RBAC (как есть сейчас)
+## 6. Аутентификация и RBAC
 
 - Логин выдаёт JWT (`pyjwt`) c `user_id` + `session_id`; `session_id` хранится в **Redis** — access-токен валиден, только пока сессия жива.
 - Токен передаётся в заголовке `Authorization` (фронт кладёт его целиком, без префикса Bearer — см. `frontend/src/api/client.js`).
-- Проверка токена: `dependencies/auth_dependency.py::get_current_user` → декодирует JWT (`handlers/auth.py::AuthHandler`), сверяет сессию в Redis, загружает пользователя с ролями, возвращает `UserMeResponse`.
+- Проверка токена выполняется в **service-auth**: `GET /auth/introspect` → декодирует JWT (`handlers/auth.py::AuthHandler`), сверяет сессию в Redis, загружает пользователя с ролями, возвращает `UserMeResponse`.
+- **service-crm не валидирует токен локально** — он проксирует проверку через `AuthProxy` → `http://service-auth:8000/auth/introspect`.
 - RBAC: `User M2M Role M2M Permission` (модели в `models/user.py`). Защита эндпоинта:
 
 ```python
@@ -240,23 +241,32 @@ async def get_user(
 
 ## 9. Текущее состояние и планы (важно!)
 
-### ⚠️ Дублирование auth: crm vs auth — требуется доработка
+### ✅ Аутентификация через service-auth (работает)
 
-Сейчас **регистрация и логин реализованы дважды**:
+**Аутентификация реализована в `service-auth`** и используется как фронтендом, так и сервисом-crm:
 
-- `service-crm` — роуты `/auth/*` (`routes/auth.py` → `handlers/auth.py`, Redis-сессии). **Именно его использует фронтенд** (`/api/v1/crm/auth/login`).
-- `service-auth` — отдельный сервис `register/login/logout`, но nginx на него **не проксирует**, фронтенд им не пользуется.
+- **service-auth** — единственный источник аутентификации: регистрация (`/auth/register`), логин (`/auth/login`), logout (`/auth/logout`), introspection (`/auth/introspect`), профиль пользователя (`/auth/me`). Сессии хранятся в Redis.
+- **Роутеры service-auth зарегистрированы с `prefix="/auth"`** — пути: `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/introspect`, `/auth/me`.
+- **service-auth работает без `root_path`** — использует `docs_url="/docs"` и `openapi_url="/openapi.json"` на корневых путях.
+- **Фронтенд** использует `authApiClient` с базовым путём `/api/v1/auth` и вызывает эндпоинты с префиксом `/auth/...` (например, `/auth/login`, `/auth/me`).
 
-Причина: чтобы роуты `crm` (и будущего `commercial`) проверяли JWT, выпущенный `service-auth`, нужна общая валидация токенов на границе — по-простому это не сделать без дублирования секрета/логики в каждом сервисе.
+**Как это работает через nginx:**
 
-**Ближайший план (в процессе обдумывания): вынести аутентификацию за API Gateway:**
+1. **Фронтенд → nginx → service-auth**:
+   - `POST /api/v1/auth/auth/login` → nginx `proxy_pass http://auth_backend/;` → service-auth:8000/auth/login ✅
+
+2. **service-crm → service-auth (напрямую, без nginx)**:
+   - `GET /auth/introspect?permission=list_users` → service-auth:8000/auth/introspect ✅
+   - Реализовано через `AuthProxy` в `src/handlers/auth_proxy.py`
+
+**service-crm больше не содержит auth-эндпоинтов** — все роуты аутентификации вынесены в service-auth.
+
+**Ближайший план: вынести аутентификацию за API Gateway:**
 
 1. Развить `infra/nginx` в полноценный **API Gateway**: терминация и валидация JWT (introspection / `auth_request` → `service-auth`), единый префикс `/api/v1/*`.
 2. `service-auth` становится **единственным** источником регистрации/логина/сессий (Redis).
-3. `service-crm` и `service-commercial` **перестают содержать auth-эндпоинты** — принимают только проверенные заголовки пользователя от гateway (`X-User-ID` и т.п.) или валидируют JWT локально по общему секрету/JWKS.
+3. `service-crm` и `service-commercial` **перестают содержать auth-эндпоинты** — принимают только проверенные заголовки пользователя от gateway (`X-User-ID` и т.п.) или валидируют JWT локально по общему секрету/JWKS.
 4. Фронтенд переключается с `/api/v1/crm/auth/*` на `/api/v1/auth/*`.
-
-**Пока этого нет: новые auth-эндпоинты добавлять в service-crm** (не в service-auth!), чтобы не плодить третьего дубля. Не «чините» service-auth под фронтенд без согласования — это часть рефакторинга под gateway.
 
 ### Асpirational-фичи README, которых НЕТ в коде
 
