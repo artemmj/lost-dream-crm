@@ -3,7 +3,7 @@
 > **⚠️ ACTIVE DEVELOPMENT WARNING — Проект находится в стадии активной разработки.**
 
 lost-dream-crm — микросервисная CRM-система. Архитектура построена на слабосвязанных доменах с изолированным хранением персональных данных.
-Проект реализует стек FastAPI, Kafka и Vue/Refine с применением паттернов событийно-ориентированного взаимодействия.
+Проект реализует стек FastAPI, Kafka и Vue.js с применением паттернов событийно-ориентированного взаимодействия.
 
 ## 🏗 Архитектура
 
@@ -61,7 +61,6 @@ open http://localhost:3000
 - [ ] **AES-256 шифрование PII at-rest** — шифрование чувствительных полей в `service-customers`
 - [ ] **Rate Limiting + Circuit Breaker** — защита от перегрузок и каскадных сбоев
 - [ ] **WebSocket Gateway** — real-time обновления метрик/статусов на фронтенде
-- [ ] **Refine Framework** — миграция фронтенда с ручного Vue на Refine (CRUD-админка out of the box)
 - [ ] **Prometheus + Grafana** — метрики, алерты, дашборды
 - [ ] **Testcontainers** — интеграционные тесты в CI
 - [ ] **API Gateway JWT терминация** — nginx `auth_request` → `service-auth`, передача `X-User-*` заголовков downstream
@@ -70,7 +69,6 @@ open http://localhost:3000
 ### 📦 Техдолг (планируемый рефакторинг)
 
 - [ ] Вынос общего кода в `shared` пакет (`dao/base.py`, `db_dependency`, `models/mixins.py`, `handlers/auth.py`)
-- [ ] Устранение дублирования префикса `/auth/auth` в роутинге (см. раздел ниже)
 - [ ] Защита `service-customers` на уровне API Gateway
 - [ ] Production сборка фронтенда (multi-stage Dockerfile)
 - [ ] CORS и логирование через settings, убрать `print()`
