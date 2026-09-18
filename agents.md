@@ -239,16 +239,11 @@ async def get_user(
 
 ---
 
-## 9. Текущее состояние и планы (важно!)
+## 9. Текущее состояние и планы
 
 ### ✅ Аутентификация через service-auth (работает)
 
-**Аутентификация реализована в `service-auth`** и используется как фронтендом, так и сервисом-crm:
-
-- **service-auth** — единственный источник аутентификации: регистрация (`/register`), логин (`/login`), logout (`/logout`), introspection (`/introspect`), профиль пользователя (`/me`). Сессии хранятся в Redis.
-- **Роутеры service-auth без префикса** — пути: `/register`, `/login`, `/logout`, `/introspect`, `/me`.
-- **service-auth без `root_path`** — Swagger доступен на `/docs` (без префикса).
-- **Фронтенд** использует `authApiClient` с базовым путём `/api/v1/auth` и вызывает эндпоинты без префикса (например, `/login`, `/register`, `/me`, `/logout`).
+**Аутентификация реализована в `service-auth`** и используется как фронтендом, так и сервисом-crm.
 
 **Как это работает через nginx:**
 
@@ -259,8 +254,6 @@ async def get_user(
    - `GET /introspect?permission=list_users` → service-auth:8000/introspect ✅
    - Реализовано через `AuthProxy` в `src/handlers/auth_proxy.py`
 
-**service-crm больше не содержит auth-эндпоинтов** — все роуты аутентификации вынесены в service-auth.
-
 **Ближайший план: вынести аутентификацию за API Gateway:**
 
 1. Развить `infra/nginx` в полноценный **API Gateway**: терминация и валидация JWT (introspection / `auth_request` → `service-auth`), единый префикс `/api/v1/*`.
@@ -270,7 +263,7 @@ async def get_user(
 
 ### Асpirational-фичи README, которых НЕТ в коде
 
-Не ссылайтесь на них как на существующие: Kafka + Schema Registry + Outbox, WebSocket Gateway, Refine (фронт — чистый Vue), Prometheus/Grafana, Testcontainers, AES-шифрование PII, Rate Limiting, Circuit Breaker. Также `service-commercial` — пустой каталог.
+Не ссылайтесь на них как на существующие: Kafka + Schema Registry + Outbox, WebSocket Gateway, Prometheus/Grafana, Testcontainers, AES-шифрование PII, Rate Limiting, Circuit Breaker. Также `service-commercial` — пустой каталог.
 
 ### Известные огрехи инфраструктуры
 
