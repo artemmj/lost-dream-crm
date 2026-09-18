@@ -14,7 +14,7 @@ lost-dream-crm — микросервисная CRM-система. Целева
 | Backend | Python 3.13, FastAPI, SQLAlchemy 2.0 (async), Pydantic v2, Alembic, Redis, PyJWT, bcrypt/passlib |
 | Пакетный менеджер | **uv** (`uv.lock`, `uv sync --frozen`, `uv run`) |
 | Frontend | Vue 3, Vite 5, Pinia, vue-router 4, axios |
-| БД / кэш | PostgreSQL 18 (две изолированные БД), Redis 7 |
+|| БД / кэш | PostgreSQL 16 (две изолированные БД), Redis 7 ||
 | Инфраструктура | Docker Compose, Nginx (reverse proxy) |
 
 **Язык кода и комментариев — русский.** Комментарии, docstring и сообщения об ошибках пишутся на русском; идентификаторы — на английском.
@@ -24,7 +24,7 @@ lost-dream-crm — микросервисная CRM-система. Целева
 ## 2. Архитектура и сервисы
 
 ```
-Браузер → :80 nginx ─┬─ /api/v1/auth/auth/*     → service-auth:8000   (логин/регистрация/сессии/introspect/me)
+Браузер → :80 nginx ─┬─ /api/v1/auth/*       → service-auth:8000   (логин/регистрация/сессии/introspect/me)
                      ├─ /api/v1/crm/          → service-crm:8000    (пользователи, роли, пермишены)
                      ├─ /api/v1/customers/  → service-customers:8000
                      └─ / (прочее)          → frontend:3000 (Vite dev + HMR)
@@ -33,11 +33,11 @@ service-crm ──(GET /auth/introspect, Authorization)──► service-auth
 service-auth ──► db-crm + redis (сессии)
 ```
 
-**Аутентификация — единый источник `service-auth`.** Он один выпускает JWT, хранит сессии в Redis и проверяет пермишены. Остальные сервисы **не декодируют токен сами** — они спрашивают у auth через `GET /auth/introspect` (см. раздел 6).
+**Аутентификация — единый источник `service-auth`.** Он один выпускает JWT, хранит сессии в Redis и проверяет пермишены. Остальные сервисы **не декодируют токен сами** — они спрашивают у auth через `GET /introspect` (см. раздел 6).
 
 | Сервис | Каталог | Порт (host) | root_path | БД / Redis | Назначение |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| service-auth | `services/service-auth` | 8003 | `/api/v1/auth` | db-crm + redis | **Единственный источник аутентификации**: register/login/logout, сессии (Redis), валидация токена и пермишенов (`/auth/introspect`) |
+|| service-auth | `services/service-auth` | 8003 | — | db-crm + redis | **Единственный источник аутентификации**: register/login/logout, сессии (Redis), валидация токена и пермишенов (`/introspect`) ||
 | service-crm | `services/service-crm` | 8001 | `/api/v1/crm` | db-crm | Пользователи, роли, пермишены;**владелец схемы** `db-crm` (единственная папка миграций) |
 | service-customers | `services/service-customers` | 8002 | — | db-customers | PII-данные клиентов, изолированная БД |
 | service-commercial | `services/service-commercial` | — | — | — | **Пустой каталог**, планируется |
@@ -245,18 +245,18 @@ async def get_user(
 
 **Аутентификация реализована в `service-auth`** и используется как фронтендом, так и сервисом-crm:
 
-- **service-auth** — единственный источник аутентификации: регистрация (`/auth/register`), логин (`/auth/login`), logout (`/auth/logout`), introspection (`/auth/introspect`), профиль пользователя (`/auth/me`). Сессии хранятся в Redis.
-- **Роутеры service-auth зарегистрированы с `prefix="/auth"`** — пути: `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/introspect`, `/auth/me`.
-- **service-auth работает без `root_path`** — использует `docs_url="/docs"` и `openapi_url="/openapi.json"` на корневых путях.
-- **Фронтенд** использует `authApiClient` с базовым путём `/api/v1/auth` и вызывает эндпоинты с префиксом `/auth/...` (например, `/auth/login`, `/auth/me`).
+- **service-auth** — единственный источник аутентификации: регистрация (`/register`), логин (`/login`), logout (`/logout`), introspection (`/introspect`), профиль пользователя (`/me`). Сессии хранятся в Redis.
+- **Роутеры service-auth без префикса** — пути: `/register`, `/login`, `/logout`, `/introspect`, `/me`.
+- **service-auth без `root_path`** — Swagger доступен на `/docs` (без префикса).
+- **Фронтенд** использует `authApiClient` с базовым путём `/api/v1/auth` и вызывает эндпоинты без префикса (например, `/login`, `/register`, `/me`, `/logout`).
 
 **Как это работает через nginx:**
 
 1. **Фронтенд → nginx → service-auth**:
-   - `POST /api/v1/auth/auth/login` → nginx `proxy_pass http://auth_backend/;` → service-auth:8000/auth/login ✅
+   - `POST /api/v1/auth/login` → nginx `proxy_pass http://auth_backend/;` → service-auth:8000/login ✅
 
 2. **service-crm → service-auth (напрямую, без nginx)**:
-   - `GET /auth/introspect?permission=list_users` → service-auth:8000/auth/introspect ✅
+   - `GET /introspect?permission=list_users` → service-auth:8000/introspect ✅
    - Реализовано через `AuthProxy` в `src/handlers/auth_proxy.py`
 
 **service-crm больше не содержит auth-эндпоинтов** — все роуты аутентификации вынесены в service-auth.

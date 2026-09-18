@@ -42,7 +42,7 @@ class AuthProxy:
                 base_url=self._base_url, timeout=5.0
             ) as client:
                 response = await client.get(
-                    "/auth/introspect",
+                    "/introspect",
                     params=params,
                     headers={"Authorization": authorization},
                 )

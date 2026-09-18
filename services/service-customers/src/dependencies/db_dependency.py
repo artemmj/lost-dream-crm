@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Optional
@@ -6,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.settings import settings
+
+logger = logging.getLogger(__name__)
 
 
 class DBDependency:
@@ -57,12 +60,12 @@ class DBDependency:
 
         except SQLAlchemyError as e:
             await session.rollback()
-            print(f"Database transaction failed: {str(e)}")
+            logger.error("Database transaction failed: %s", str(e))
             raise
 
         except Exception as e:
             await session.rollback()
-            print(f"Unexpected error in transaction: {str(e)}")
+            logger.error("Unexpected error in transaction: %s", str(e))
             raise
 
         finally:

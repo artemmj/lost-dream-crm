@@ -6,7 +6,7 @@ export const authApi = {
      * @param {{ email: string, password: string, first_name: string, last_name: string }} data
      */
     register(data) {
-        return authApiClient.post('/auth/register', data)
+        return authApiClient.post('/register', data)
     },
 
     /**
@@ -15,7 +15,7 @@ export const authApi = {
      * @returns { access_token } в response.data
      */
     login(data) {
-        return authApiClient.post('/auth/login', data)
+        return authApiClient.post('/login', data)
     },
 
     /**
@@ -32,6 +32,6 @@ export const authApi = {
      * Токен передаётся через заголовок Authorization (автоматически из интерсептора).
      */
     logout() {
-        return authApiClient.get('/auth/logout')
+        return authApiClient.get('/logout')
     },
 }
