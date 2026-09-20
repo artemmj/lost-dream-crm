@@ -1,9 +1,13 @@
 import datetime
-from typing import List, Optional
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
+from typing import List, Optional
 
 from src.dao.customer import CustomerDAO
+from src.models.customer import Customer
+from src.kafka.events import CustomerCreatedEvent
+from src.dependencies.db_dependency import db_dependency
+from src.dao.outbox_dao import OutboxDAO
 
 logger = logging.getLogger(__name__)
 
@@ -52,29 +56,50 @@ class CustomerResponseDTO:
 class CustomerService:
     """Сервис бизнес-логики для пользователей"""
 
-    def __init__(self, customer_dao: CustomerDAO):
+    def __init__(self, customer_dao: CustomerDAO, outbox_dao: OutboxDAO):
         self.customer_dao = customer_dao
+        self.outbox_dao = outbox_dao
 
     async def register_customer(self, dto: CustomerCreateDTO) -> CustomerResponseDTO:
-        """Регистрация нового пользователя"""
+        """Регистрация нового клиента (атомарно с записью в outbox)"""
         if await self.customer_dao.email_exists(dto.email):
             raise CustomerAlreadyExistsError(
                 f"Customer with email '{dto.email}' already exists"
             )
 
-        customer_dict = await self.customer_dao.create(
-            email=dto.email,
-            phone=dto.phone,
-            password_hash=dto.password_hash,
-            first_name=dto.first_name,
-            last_name=dto.last_name,
-            middle_name=dto.middle_name,
-        )
+        async with self.customer_dao.db.session_scope() as session:
+            # 1. Создаём ORM-объект вручную, используя ту же сессию
+            customer_obj = Customer(
+                email=dto.email,
+                phone=dto.phone,
+                password_hash=dto.password_hash,
+                first_name=dto.first_name,
+                last_name=dto.last_name,
+                middle_name=dto.middle_name,
+            )
+            session.add(customer_obj)
+            await session.flush()
+            await session.refresh(customer_obj)
 
+            # Конвертируем в dict для совместимости с остальным кодом
+            customer_dict = self.customer_dao._model_to_dict(customer_obj)
+
+            # 2. Формируем событие (БЕЗ PII!)
+            event = CustomerCreatedEvent.from_customer_dict(customer_dict)
+
+            # 3. Атомарная запись в outbox (ТА ЖЕ сессия!)
+            await self.outbox_dao.save_in_session(
+                session,
+                aggregate_type="customer",
+                aggregate_id=customer_dict["id"],
+                event_type="customer.created.v1",
+                payload=event.to_payload(),
+            )
+            # commit произойдёт автоматически при выходе из session_scope
+
+        # Отправка email — ПОСЛЕ коммита (не блокируем транзакцию)
         await self._send_welcome_email(customer_dict)
-        logger.info(
-            f"Customer registered: {customer_dict['id']} ({customer_dict['email']})"
-        )
+        logger.info(f"Customer registered: {customer_dict['id']}")
 
         return CustomerResponseDTO(**customer_dict)
 
@@ -186,3 +211,11 @@ class CustomerService:
 
     async def _revoke_customer_sessions(self, customer_id: int) -> None:
         logger.info(f"Revoking sessions for customer {customer_id}")
+
+
+def get_customer_service() -> CustomerService:
+    """Фабрика сервиса клиентов с поддержкой Outbox"""
+    customer_dao = CustomerDAO(db_dependency)
+    outbox_dao = OutboxDAO(db_dependency)
+
+    return CustomerService(customer_dao=customer_dao, outbox_dao=outbox_dao)

@@ -25,10 +25,20 @@ class DBSettings(BaseSettings):
         )
 
 
+class KafkaSettings(BaseSettings):
+    kafka_bootstrap_servers: str = "kafka:9092"
+    schema_registry_url: str = "http://schema-registry:8081"
+    outbox_poll_interval_ms: int = 200
+    outbox_batch_size: int = 50
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+
 class Settings(BaseSettings):
     secret_key: SecretStr = Field(default="", alias="SECRET_KEY")
 
     db_settings: DBSettings = DBSettings()
+    kafka: KafkaSettings = KafkaSettings()
 
     model_config = SettingsConfigDict(
         env_file="../.env",

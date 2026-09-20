@@ -1,4 +1,10 @@
-FROM python:3.13-alpine
+FROM python:3.13-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libsnappy-dev \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 RUN pip install uvicorn

@@ -57,7 +57,7 @@ class CustomerDAO(BaseDAO[Customer]):
         """Получение всех активных пользователей — возвращает список словарей"""
         async with self.db.read_only_scope() as session:
             result = await session.execute(
-                select(Customer).where(Customer.is_active == True)
+                select(Customer).where(Customer.is_active is True)
             )
             objects = result.scalars().all()
             return [self._model_to_dict(obj) for obj in objects]

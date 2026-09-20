@@ -6,6 +6,7 @@ from pydantic import BaseModel, EmailStr, Field
 
 from src.dependencies.db_dependency import db_dependency
 from src.dao.customer import CustomerDAO
+from src.dao.outbox_dao import OutboxDAO
 from src.services.customer import (
     CustomerService,
     CustomerCreateDTO,
@@ -59,28 +60,18 @@ class CustomerListResponse(BaseModel):
     per_page: int
 
 
-class BulkCreateRequest(BaseModel):
-    customers: List[CustomerCreateRequest] = Field(..., min_items=1, max_items=100)
-
-
-class BulkCreateResponse(BaseModel):
-    created: int
-    skipped: int
-    skipped_emails: List[str]
-    customers: List[CustomerResponse]
-
-
 # ===== Dependency Injection =====
 
 
 def get_customer_service() -> CustomerService:
-    """Фабрика сервиса с правильным графом зависимостей.
-
-    db — модульный синглтон: движок SQLAlchemy создаётся один раз
-    на процесс, а не на каждый запрос.
-    """
+    """Фабрика для CustomerService с поддержкой Outbox"""
     customer_dao = CustomerDAO(db_dependency)
-    return CustomerService(customer_dao=customer_dao)
+    outbox_dao = OutboxDAO(db_dependency)
+
+    return CustomerService(
+        customer_dao=customer_dao,
+        outbox_dao=outbox_dao,
+    )
 
 
 # ===== CRUD endpoints =====
@@ -156,19 +147,3 @@ async def delete_customer(
         await customer_service.delete_customer(customer_id)
     except CustomerNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-
-
-# ===== Специализированные endpoints =====
-
-
-@router.post(
-    "/bulk", response_model=BulkCreateResponse, status_code=status.HTTP_201_CREATED
-)
-async def bulk_create_customers(
-    request: BulkCreateRequest,
-    customer_service: CustomerService = Depends(get_customer_service),
-):
-    """Массовое создание клиентов"""
-    dtos = [CustomerCreateDTO(**c.model_dump()) for c in request.customers]
-    result = await customer_service.bulk_create_customers(dtos)
-    return result

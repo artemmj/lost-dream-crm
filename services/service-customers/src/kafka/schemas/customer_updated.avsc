@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "CustomerUpdated",
+  "namespace": "com.lostdream.customers.v1",
+  "fields": [
+    {"name": "event_id", "type": "string"},
+    {"name": "customer_id", "type": "long"},
+    {"name": "updated_at", "type": "string"},
+    {"name": "changed_fields", "type": {"type": "array", "items": "string"}}
+  ]
+}
