@@ -53,11 +53,11 @@ open http://localhost:3000
 - [x] **Nginx API Gateway** — роутинг `/api/v1/auth/*`, `/api/v1/crm/*`, `/api/v1/customers/*` + Vite HMR прокси
 - [x] **Docker Compose** — весь стек одной командой (`make up`), healthchecks БД, volumes для персистентности
 - [x] **Alembic миграции** — автогенерация, seed тестовых пользователей (`admin@crm.local` / `admin`)
+- [x] **Kafka + Schema Registry (Avro)** — событийная шина для межсервисного взаимодействия
+- [x] **Transactional Outbox Pattern** — гарантированная доставка событий без 2PC
 
 ### 🚧 В работе (ближайшие итерации)
 
-- [ ] **Kafka + Schema Registry (Avro)** — событийная шина для межсервисного взаимодействия
-- [ ] **Transactional Outbox Pattern** — гарантированная доставка событий без 2PC
 - [ ] **AES-256 шифрование PII at-rest** — шифрование чувствительных полей в `service-customers`
 - [ ] **Rate Limiting + Circuit Breaker** — защита от перегрузок и каскадных сбоев
 - [ ] **WebSocket Gateway** — real-time обновления метрик/статусов на фронтенде
