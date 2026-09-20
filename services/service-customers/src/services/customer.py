@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, List, Optional
+from typing import List, Optional
 from dataclasses import dataclass
 import logging
 
@@ -103,7 +103,7 @@ class CustomerService:
             customers_dict = await self.customer_dao.get_active_customers()
             total = len(customers_dict)
             start = (page - 1) * per_page
-            customers_dict = customers_dict[start : start + per_page]
+            customers_dict = customers_dict[start : start + per_page]  # noqa: E203
         else:
             customers_dict = await self.customer_dao.get_all(
                 limit=per_page, offset=(page - 1) * per_page

@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "CustomerCreated",
+  "namespace": "com.lostdream.customers.v1",
+  "fields": [
+    {"name": "event_id", "type": "string"},
+    {"name": "customer_id", "type": "long"},
+    {"name": "email_hash", "type": "string"},
+    {"name": "created_at", "type": "string"}
+  ]
+}
