@@ -261,26 +261,18 @@ async def get_user(
 3. `service-crm` и `service-commercial` **перестают содержать auth-эндпоинты** — принимают только проверенные заголовки пользователя от gateway (`X-User-ID` и т.п.) или валидируют JWT локально по общему секрету/JWKS.
 4. Фронтенд переключается с `/api/v1/crm/auth/*` на `/api/v1/auth/*`.
 
-### Асpirational-фичи README, которых НЕТ в коде
-
-Не ссылайтесь на них как на существующие: Kafka + Schema Registry + Outbox, WebSocket Gateway, Prometheus/Grafana, Testcontainers, AES-шифрование PII, Rate Limiting, Circuit Breaker. Также `service-commercial` — пустой каталог.
-
 ### Известные огрехи инфраструктуры
 
 - Локальный `.env` обязателен для `make up` (compose подключает его через `env_file`), но **в образы он больше не копируется**: Dockerfile не содержит `COPY .env`, а `.dockerignore` исключает его — секреты не запекаются в слои образа.
 - Redis работает с паролем (`REDIS_PASSWORD=redispass`, dev-дефолт задан в `docker-compose.yml`) и volume `redis_data` — сессии переживают пересоздание контейнера. При смене пароля меняйте синхронно: compose + `.env` сервисов crm и auth (`settings.py` подставляет его в `redis_url`).
-- Порты БД не публикуются на хост (только `expose` внутри compose-сети); `.env.example` используют хосты `db-crm`/`db-customers`. Для ручного доступа: `docker compose exec db-crm psql -U postgres -d db-crm`.
-- Сервисы и БД связаны через `depends_on` с `condition: service_healthy`; у backend-сервисов есть healthcheck по `/health`.
 - `service-auth` использует общую БД `db-crm` — при изменении моделей пользователей синхронизируйте миграции обоих сервисов.
 - Фронт кладёт в `Authorization` «сырой» токен без `Bearer ` — при добавлении стандартных middleware/OAuth2-схем это нужно учитывать.
-- `POSTGRES_ECHO` в dev может быть `True` — шумный SQL-лог в консоли сервиса, это норма.
 
 ### Осознанно отложенные проблемы (техдолг)
 
 - **service-customers не защищён**: CRUD эндпоинты клиентов не требуют токена. План — закрыть на уровне API Gateway вместе с миграцией auth (см. выше).
 - **Тестов нет**: pytest/pytest-asyncio/aiosqlite в dev-зависимостях, но каталогов `tests/` в сервисах ещё нет (`make test` вернёт ошибку «no tests ran»).
 - **Копипаста общего кода** между сервисами (`dao/base.py`, `db_dependency`, `models/mixins.py`, `handlers/auth.py`) — кандидат в общий shared-пакет.
-- **Межсервисного взаимодействия нет**: ни REST-клиентов, ни событийной шины (Kafka — только в планах).
 - `service-auth`: `logout` принимает `session_id`-заглушку, `register_confirm` без логики; фронтендом не используется (см. выше про gateway).
 - Seed тестовых пользователей выполняется миграцией (`seed_test_users`), отладочные роуты `routes/testing.py` живут в прод-коде.
 - CORS-ориджины захардкожены в `main.py` сервисов; в `db_dependency`.
