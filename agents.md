@@ -283,7 +283,7 @@ async def get_user(
 - **Межсервисного взаимодействия нет**: ни REST-клиентов, ни событийной шины (Kafka — только в планах).
 - `service-auth`: `logout` принимает `session_id`-заглушку, `register_confirm` без логики; фронтендом не используется (см. выше про gateway).
 - Seed тестовых пользователей выполняется миграцией (`seed_test_users`), отладочные роуты `routes/testing.py` живут в прод-коде.
-- CORS-ориджины захардкожены в `main.py` сервисов; в `db_dependency` используется `print()` вместо logging.
+- CORS-ориджины захардкожены в `main.py` сервисов; в `db_dependency`.
 - Frontend в compose — Vite dev-сервер (`target=development`), production-сборки пока нет.
 
 ---

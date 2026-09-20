@@ -71,4 +71,4 @@ open http://localhost:3000
 - [ ] Вынос общего кода в `shared` пакет (`dao/base.py`, `db_dependency`, `models/mixins.py`, `handlers/auth.py`)
 - [ ] Защита `service-customers` на уровне API Gateway
 - [ ] Production сборка фронтенда (multi-stage Dockerfile)
-- [ ] CORS и логирование через settings, убрать `print()`
+- [ ] CORS и логирование через settings
