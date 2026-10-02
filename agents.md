@@ -191,13 +191,13 @@ npm run build
 ```python
 from src.dependencies.permissions import RequirePermission, Perm
 
+
 @router.get("/{user_id}")
 async def get_user(
     user_id: int,
     current_user: UserMeResponse = Depends(RequirePermission("get_user")),
     # короткая запись: current_user: UserMeResponse = Perm("get_user"),
-):
-    ...
+): ...
 ```
 
 - `is_superuser` проходит любую проверку; неактивный пользователь получает 403.
