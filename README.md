@@ -1,5 +1,7 @@
 # lost-dream-crm
 
+<img width="4026" height="3626" alt="output" src="https://github.com/user-attachments/assets/1e207786-b1e3-4cb1-a2bf-769f5865b4f5" />
+
 > **⚠️ ACTIVE DEVELOPMENT WARNING — Проект находится в стадии активной разработки.**
 
 lost-dream-crm — микросервисная CRM-система. Архитектура построена на слабосвязанных доменах с изолированным хранением персональных данных.
