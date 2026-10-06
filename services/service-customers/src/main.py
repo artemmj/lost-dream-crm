@@ -8,6 +8,7 @@ from fastapi import FastAPI, APIRouter
 from src.dependencies.db_dependency import db_dependency
 from src.dao.outbox_dao import OutboxDAO
 from src.kafka.consumer import customer_events_consumer
+from src.kafka.demo_generator import demo_event_generator
 from src.kafka.event_stream import event_stream
 from src.kafka.relay import OutboxRelay
 from src.routes.customer import router as customers_router
@@ -41,6 +42,7 @@ async def lifespan(app: FastAPI):
 
         await customer_events_consumer.start()
         logger.info("✅ CustomerEventsConsumer started successfully")
+        logger.info("DemoEventGenerator is stopped by default; use /demo/auto-stream/start")
 
     except Exception as e:
         logger.error(f"❌ Failed to initialize Kafka components: {e}", exc_info=True)
@@ -50,6 +52,7 @@ async def lifespan(app: FastAPI):
 
     logger.info("Stopping Kafka components...")
     await customer_events_consumer.stop()
+    await demo_event_generator.stop()
     if relay:
         await relay.stop()
     logger.info("=== LIFESPAN END ===")

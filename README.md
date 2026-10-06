@@ -64,6 +64,16 @@ GET /api/v1/customers/events (SSE)
 Vue Dashboard
 ```
 
+Ручные события отправляются через Kafka producer с `source=manual`. Дополнительно доступен backend-процесс генерации случайных `customer.created.v1` и `customer.updated.v1` раз в секунду:
+
+```text
+POST /api/v1/customers/demo/auto-stream/start
+POST /api/v1/customers/demo/auto-stream/stop
+GET  /api/v1/customers/demo/auto-stream
+```
+
+Автоматический генератор по умолчанию остановлен и запускается по необходимости. События `source=auto` отображаются отдельной лентой на dashboard.
+
 Каждое demo-событие отправляется только один раз: через Kafka producer, а не напрямую в EventStream. Так обеспечивается единый источник событий для интерфейса и предотвращается дублирование.
 
 ## 📋 Статус реализации (Roadmap)

@@ -46,6 +46,7 @@ class KafkaProducerWithSchemaRegistry:
         key: str,
         event_type: str,
         payload: dict,
+        source: str = "manual",
     ) -> None:
         """
         Отправляет событие в Kafka с Avro-сериализацией.
@@ -78,11 +79,14 @@ class KafkaProducerWithSchemaRegistry:
             topic=topic,
             key=key.encode("utf-8"),
             value=wire_format,
-            headers=[("event_type", event_type.encode("utf-8"))],
+            headers=[
+                ("event_type", event_type.encode("utf-8")),
+                ("source", source.encode("utf-8")),
+            ],
         )
 
         logger.info(
-            f"✅ Sent event {event_type} to topic {topic} (key={key}, schema_id={schema_id})"
+            f"✅ Sent event {event_type} to topic {topic} (key={key}, source={source}, schema_id={schema_id})"
         )
 
     async def stop(self):

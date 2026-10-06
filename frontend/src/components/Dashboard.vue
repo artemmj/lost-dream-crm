@@ -1,24 +1,8 @@
 <template>
     <div class="dashboard">
         <section class="dashboard__welcome">
-            <h2 class="dashboard__title">Kafka Demo Stream</h2>
-            <p class="dashboard__subtitle">Наблюдайте, как реальные события проходят через Kafka, Schema Registry и SSE.</p>
+            <h2 class="dashboard__title">Lost Dream CRM</h2>
         </section>
-
-        <div class="dashboard__status">
-            <div class="dashboard__status-indicator" :class="{ online: streamConnected }"></div>
-            <span>{{ streamConnected ? 'Live-соединение активно' : 'Ожидание подключения...' }}</span>
-            <span class="dashboard__counter">{{ events.length }} событий</span>
-        </div>
-
-        <div class="dashboard__controls">
-            <button class="dashboard__btn dashboard__btn--primary" @click="emitCreatedEvent">
-                Отправить customer.created.v1
-            </button>
-            <button class="dashboard__btn dashboard__btn--secondary" @click="emitUpdatedEvent">
-                Отправить customer.updated.v1
-            </button>
-        </div>
 
         <div class="dashboard__grid">
             <div class="dashboard__card">
@@ -42,21 +26,71 @@
                 <button class="dashboard__card-btn" @click="goToPerms">Перейти</button>
             </div>
         </div>
-
-        <section class="dashboard__events">
-            <div class="dashboard__events-header">
-                <h3>Живой поток событий</h3>
-                <button class="dashboard__btn dashboard__btn--ghost" @click="events = []">Очистить</button>
+        <div class="dashboard__status">
+          <div class="dashboard__status-indicator" :class="{ online: streamConnected }"></div>
+          <span>{{ streamConnected ? 'Live-соединение активно' : 'Ожидание подключения...' }}</span>
+          <span class="dashboard__counter">{{ manualEvents.length + autoEvents.length }} событий</span>
+        </div>
+        <p class="dashboard__subtitle">Наблюдайте, как реальные события проходят через Kafka, Schema Registry и SSE.</p>
+        <section class="dashboard__events dashboard__events--manual">
+          <div class="dashboard__events-header">
+                <h3>Ручной поток событий</h3>
+                <div class="dashboard__events-controls">
+                    <button class="dashboard__btn dashboard__btn--primary" @click="emitCreatedEvent">
+                        customer.created.v1
+                    </button>
+                    <button class="dashboard__btn dashboard__btn--secondary" @click="emitUpdatedEvent">
+                        customer.updated.v1
+                    </button>
+                    <button class="dashboard__btn dashboard__btn--ghost" @click="manualEvents = []">
+                        Очистить
+                    </button>
+                </div>
             </div>
 
-            <div v-if="!events.length" class="dashboard__empty">
-                События пока не получены. Нажмите кнопку запуска для тестового события.
+            <div v-if="!manualEvents.length" class="dashboard__empty">
+                Ручные события пока не получены.
             </div>
 
-            <article v-for="event in events" :key="event.id || event.event_id || event.offset" class="event-card">
+            <article v-for="event in manualEvents" :key="event.id || event.event_id || event.offset" class="event-card">
                 <div class="event-card__top">
                     <span class="event-card__type">{{ event.event_type }}</span>
-                    <span class="event-card__source">{{ event.source || 'kafka' }}</span>
+                    <span class="event-card__source">{{ event.source || 'manual' }}</span>
+                </div>
+                <div class="event-card__meta">
+                    <span>topic: {{ event.topic || 'customer.events.v1' }}</span>
+                    <span>offset: {{ event.offset ?? '—' }}</span>
+                    <span>{{ formatTime(event.timestamp || event.payload?.created_at || event.payload?.updated_at) }}</span>
+                </div>
+                <pre>{{ JSON.stringify(event.payload, null, 2) }}</pre>
+            </article>
+        </section>
+
+        <section class="dashboard__events dashboard__events--auto">
+            <div class="dashboard__events-header">
+                <h3>Автоматический поток событий</h3>
+                <div class="dashboard__events-controls">
+                    <span class="dashboard__auto-status" :class="{ active: autoStreamRunning }">
+                        {{ autoStreamRunning ? 'Запущен' : 'Остановлен' }}
+                    </span>
+                    <button
+                        class="dashboard__btn"
+                        :class="autoStreamRunning ? 'dashboard__btn--ghost' : 'dashboard__btn--primary'"
+                        @click="toggleAutoStream"
+                    >
+                        {{ autoStreamRunning ? 'Остановить' : 'Запустить раз в секунду' }}
+                    </button>
+                </div>
+            </div>
+
+            <div v-if="!autoEvents.length" class="dashboard__empty">
+                Автоматический поток пока не сгенерировал события.
+            </div>
+
+            <article v-for="event in autoEvents" :key="event.id || event.event_id || event.offset" class="event-card">
+                <div class="event-card__top">
+                    <span class="event-card__type">{{ event.event_type }}</span>
+                    <span class="event-card__source">{{ event.source || 'auto' }}</span>
                 </div>
                 <div class="event-card__meta">
                     <span>topic: {{ event.topic || 'customer.events.v1' }}</span>
@@ -77,13 +111,25 @@ import { customersApiClient } from '../api/client'
 
 const authStore = useAuthStore()
 const router = useRouter()
-const events = ref([])
+const manualEvents = ref([])
+const autoEvents = ref([])
+const autoStreamRunning = ref(false)
 const streamConnected = ref(false)
 let stream = null
 
 function formatTime(value) {
     if (!value) return '—'
     return new Date(value).toLocaleString('ru-RU')
+}
+
+function addEvent(event) {
+    const normalized = { id: crypto.randomUUID(), ...event }
+    if (normalized.source === 'auto') {
+        autoEvents.value = [normalized, ...autoEvents.value].slice(0, 25)
+        return
+    }
+
+    manualEvents.value = [normalized, ...manualEvents.value].slice(0, 25)
 }
 
 function setupStream() {
@@ -93,11 +139,16 @@ function setupStream() {
     }
     stream.onmessage = (event) => {
         const payload = JSON.parse(event.data)
-        events.value = [{ id: crypto.randomUUID(), ...payload }, ...events.value].slice(0, 25)
+        addEvent(payload)
     }
     stream.onerror = () => {
         streamConnected.value = false
     }
+}
+
+async function loadAutoStreamStatus() {
+    const response = await customersApiClient.get('/demo/auto-stream')
+    autoStreamRunning.value = response.data.running
 }
 
 async function emitCreatedEvent() {
@@ -106,6 +157,15 @@ async function emitCreatedEvent() {
 
 async function emitUpdatedEvent() {
     await customersApiClient.post('/demo/customer-updated')
+}
+
+async function toggleAutoStream() {
+    if (autoStreamRunning.value) {
+        await customersApiClient.post('/demo/auto-stream/stop')
+    } else {
+        await customersApiClient.post('/demo/auto-stream/start')
+    }
+    await loadAutoStreamStatus()
 }
 
 function goToUsers() {
@@ -120,8 +180,9 @@ function goToPerms() {
     router.push('/perms')
 }
 
-onMounted(() => {
+onMounted(async () => {
     setupStream()
+    await loadAutoStreamStatus()
 })
 
 onBeforeUnmount(() => {
@@ -133,7 +194,7 @@ onBeforeUnmount(() => {
 .dashboard__welcome { margin-bottom: 12px; }
 .dashboard__title { font-size: 28px; font-weight: 700; color: #111827; margin-bottom: 8px; }
 .dashboard__subtitle { color: #6b7280; }
-.dashboard__status { display: flex; align-items: center; gap: 12px; font-size: 14px; color: #374151; background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; }
+.dashboard__status { display: flex; align-items: center; gap: 12px; font-size: 14px; color: #374151; background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; margin-top: 20px; }
 .dashboard__status-indicator { width: 10px; height: 10px; border-radius: 50%; background: #f59e0b; }
 .dashboard__status-indicator.online { background: #10b981; box-shadow: 0 0 10px rgba(16, 185, 129, .5); }
 .dashboard__counter { margin-left: auto; font-weight: 600; }
@@ -151,7 +212,12 @@ onBeforeUnmount(() => {
 .dashboard__card-btn { align-self: flex-start; padding: 8px 16px; background: #4f46e5; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; transition: background 0.2s; }
 .dashboard__card-btn:hover { background: #4338ca; }
 .dashboard__events { margin-top: 32px; background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; }
-.dashboard__events-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.dashboard__events--auto { margin-top: 16px; }
+.dashboard__events-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.dashboard__events-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dashboard__auto-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; }
+.dashboard__auto-status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; }
+.dashboard__auto-status.active::before { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, .5); }
 .dashboard__empty { text-align: center; padding: 40px; color: #6b7280; border: 1px dashed #d1d5db; border-radius: 8px; }
 .event-card { padding: 16px; border: 1px solid #e5e7eb; border-radius: 10px; margin-bottom: 12px; }
 .event-card__top, .event-card__meta { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -159,4 +225,9 @@ onBeforeUnmount(() => {
 .event-card__source { font-size: 12px; padding: 3px 8px; border-radius: 999px; background: #eef2ff; color: #4338ca; }
 .event-card__meta { font-size: 12px; color: #6b7280; margin-top: 8px; }
 .event-card pre { margin: 12px 0 0; white-space: pre-wrap; font-size: 12px; color: #374151; background: #f9fafb; padding: 12px; border-radius: 8px; overflow-x: auto; }
+@media (max-width: 720px) {
+    .dashboard__events-header { align-items: flex-start; flex-direction: column; }
+    .dashboard__events-controls { width: 100%; }
+    .dashboard__events-controls .dashboard__btn { flex: 1; }
+}
 </style>

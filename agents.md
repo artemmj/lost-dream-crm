@@ -152,6 +152,8 @@ npm run build
 - Логин (seed-пользователи `admin@crm.local` / `john.doe@example.com`, пароль `admin`):
   `curl -X POST http://localhost/api/v1/auth/login -H 'Content-Type: application/json' -d '{"email":"admin@crm.local","password":"admin"}'`
 - Demo events: `curl -X POST http://localhost/api/v1/customers/demo/customer-created` и `/customer-updated`
+- Автоматический demo-поток: `GET /api/v1/customers/demo/auto-stream`, `POST /api/v1/customers/demo/auto-stream/start`, `POST /api/v1/customers/demo/auto-stream/stop`
+- Авто-генератор работает раз в секунду, публикует `customer.created.v1` или `customer.updated.v1` и передаёт `source=auto` в Kafka headers; объекты попадают в общий SSE-поток, а фронтенд разделяет их по source
 
 ---
 

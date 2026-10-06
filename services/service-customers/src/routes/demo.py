@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, status
 
+from src.kafka.demo_generator import demo_event_generator
 from src.kafka.producer import kafka_producer
 from src.settings import settings
 
@@ -25,6 +26,7 @@ async def emit_demo_customer_event() -> dict:
         key="demo-customer",
         event_type="customer.created.v1",
         payload=payload,
+        source="manual",
     )
 
     return {"accepted": True, "event_type": "customer.created.v1", "event_id": event_id}
@@ -46,6 +48,30 @@ async def emit_demo_customer_updated_event() -> dict:
         key="demo-customer",
         event_type="customer.updated.v1",
         payload=payload,
+        source="manual",
     )
 
     return {"accepted": True, "event_type": "customer.updated.v1", "event_id": event_id}
+
+
+@router.get("/auto-stream")
+async def get_auto_stream_status() -> dict:
+    """Возвращает состояние автоматической генерации событий."""
+    return {
+        "running": demo_event_generator.is_running(),
+        "interval_seconds": demo_event_generator.interval_seconds,
+    }
+
+
+@router.post("/auto-stream/start", status_code=status.HTTP_202_ACCEPTED)
+async def start_auto_stream() -> dict:
+    """Запускает автоматическую генерацию случайных событий."""
+    await demo_event_generator.start()
+    return {"accepted": True, "running": True}
+
+
+@router.post("/auto-stream/stop", status_code=status.HTTP_202_ACCEPTED)
+async def stop_auto_stream() -> dict:
+    """Останавливает автоматическую генерацию случайных событий."""
+    await demo_event_generator.stop()
+    return {"accepted": True, "running": False}

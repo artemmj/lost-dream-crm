@@ -9,12 +9,13 @@ from src.routes.demo import emit_demo_customer_event
 async def test_demo_created_event_is_published_only_through_kafka(monkeypatch):
     calls: dict[str, object] = {}
 
-    async def fake_send_event(topic, key, event_type, payload):
+    async def fake_send_event(topic, key, event_type, payload, source="manual"):
         calls["producer"] = {
             "topic": topic,
             "key": key,
             "event_type": event_type,
             "payload": payload,
+            "source": source,
         }
 
     def fake_publish(event):

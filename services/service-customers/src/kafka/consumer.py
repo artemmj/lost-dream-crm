@@ -70,6 +70,7 @@ class CustomerEventsConsumer:
         if not event_type:
             raise ValueError("Kafka message has no event_type header")
 
+        source = headers.get("source", "manual")
         payload = message.value
         if payload is None or len(payload) < 5 or payload[0] != 0:
             raise ValueError("Kafka message is not in Confluent Wire Format")
@@ -90,6 +91,7 @@ class CustomerEventsConsumer:
             "offset": message.offset,
             "timestamp": message.timestamp,
             "payload": decoded,
+            "source": source,
             "raw": json.loads(json.dumps(decoded, default=str)),
         }
 
