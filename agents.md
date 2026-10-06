@@ -44,7 +44,7 @@ service-auth ──► db-crm + redis (сессии)
 | frontend | `frontend` | 3000 | — | — | SPA (Vite dev-сервер, proxy `/api` → nginx) |
 | nginx | `infra/nginx` | 80, 443 | — | — | API Gateway (reverse proxy; JWT-терминация пока в сервисах) |
 | redis | — | 6379 (только внутри сети) | — | — | Сессии/access-токены (dev-пароль `redispass`, volume `redis_data`) |
-| db-crm / db-customers | — | 5432 / 5433 (порты НЕ публикуются на хост, только внутри compose-сети) | — | — | PostgreSQL 18 |
+| db-crm / db-customers | — | 5432 / 5433 (публикуются на хосте для локальной разработки) | — | — | PostgreSQL 18 |
 
 ---
 

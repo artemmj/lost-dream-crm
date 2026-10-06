@@ -228,3 +228,5 @@ node_modules/
 frontend/dist/
 frontend/.vite/
 .aider*
+
+.DS_Store

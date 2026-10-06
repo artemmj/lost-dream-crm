@@ -20,12 +20,4 @@ export const customersApi = {
     deleteCustomer(id) {
         return customersApiClient.delete(`/customers/${id}`)
     },
-
-    searchCustomers(query) {
-        return customersApiClient.get('/customers/search', { params: { q: query } })
-    },
-
-    getCustomersStats() {
-        return customersApiClient.get('/customers/stats')
-    },
 }

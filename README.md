@@ -23,6 +23,8 @@ lost-dream-crm — микросервисная CRM-система. Архите
 | **DevOps / Infra** | Docker Compose, Nginx, Testcontainers, Prometheus + Grafana — **В работе** |
 | **Security** | JWT/OAuth2, AES-256 Encryption, Rate Limiting, Circuit Breaker — **В работе** |
 
+> **Примечание:** в локальной инфраструктуре PostgreSQL опубликован на портах 5432 и 5433. Порты не являются публичными в production-среде и должны быть закрыты вне Docker Compose.
+
 ## 🚀 Быстрый старт
 
 ```bash
