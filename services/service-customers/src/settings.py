@@ -28,6 +28,7 @@ class DBSettings(BaseSettings):
 class KafkaSettings(BaseSettings):
     kafka_bootstrap_servers: str = "kafka:9092"
     schema_registry_url: str = "http://schema-registry:8081"
+    customer_events_topic: str = "customer.events.v1"
     outbox_poll_interval_ms: int = 200
     outbox_batch_size: int = 50
 

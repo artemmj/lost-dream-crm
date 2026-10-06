@@ -37,12 +37,34 @@ cp services/service-customers/.env.example services/service-customers/.env
 # Запуск всей инфраструктуры и сервисов
 make up
 
-# Открыть Kafka UI для мониторинга событий (когда Kafka будет добавлен)
-# open http://localhost:8080
+# Открыть Kafka UI для мониторинга событий
+open http://localhost:8080
 
 # Открыть Frontend
 open http://localhost:3000
 ```
+
+### Демонстрационный поток событий
+
+В `service-customers` предусмотрен live-демо поток для проверки Kafka, Schema Registry, consumer и SSE:
+
+```text
+POST /api/v1/customers/demo/customer-created
+    ↓
+Kafka topic: customer.events.v1
+    ↓
+Schema Registry: Avro-схема + Confluent Wire Format
+    ↓
+CustomerEventsConsumer
+    ↓
+EventStream
+    ↓
+GET /api/v1/customers/events (SSE)
+    ↓
+Vue Dashboard
+```
+
+Каждое demo-событие отправляется только один раз: через Kafka producer, а не напрямую в EventStream. Так обеспечивается единый источник событий для интерфейса и предотвращается дублирование.
 
 ## 📋 Статус реализации (Roadmap)
 
@@ -57,6 +79,7 @@ open http://localhost:3000
 - [x] **Alembic миграции** — автогенерация, seed тестовых пользователей (`admin@crm.local` / `admin`)
 - [x] **Kafka + Schema Registry (Avro)** — событийная шина для межсервисного взаимодействия
 - [x] **Transactional Outbox Pattern** — гарантированная доставка событий без 2PC
+- [x] **Демонстрационный Kafka-поток** — синтетические события `customer.created.v1` и `customer.updated.v1` проходят через Kafka, Schema Registry, consumer и попадают в live SSE-поток фронтенда
 
 ### 🚧 В работе (ближайшие итерации)
 

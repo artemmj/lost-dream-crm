@@ -73,6 +73,13 @@ class SchemaRegistryClient:
         self._schema_cache[subject] = parsed
         return parsed
 
+    async def get_schema_by_id(self, schema_id: int) -> dict:
+        """Получить схему по schema ID."""
+        response = await self._client.get(f"{self.base_url}/schemas/ids/{schema_id}")
+        response.raise_for_status()
+        schema_json = response.json()["schema"]
+        return parse_schema(json.loads(schema_json))
+
     def serialize_avro(self, schema: dict, data: dict) -> bytes:
         """Сериализует данные в Avro-формат"""
         import io

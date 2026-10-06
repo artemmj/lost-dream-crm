@@ -45,6 +45,7 @@ service-auth ──► db-crm + redis (сессии)
 | nginx | `infra/nginx` | 80, 443 | — | — | API Gateway (reverse proxy; JWT-терминация пока в сервисах) |
 | redis | — | 6379 (только внутри сети) | — | — | Сессии/access-токены (dev-пароль `redispass`, volume `redis_data`) |
 | db-crm / db-customers | — | 5432 / 5433 (публикуются на хосте для локальной разработки) | — | — | PostgreSQL 18 |
+| kafka / schema-registry / kafka-ui | — | 9092 / 8081 / 8080 | — | — | Kafka, Avro Schema Registry и мониторинг событий |
 
 ---
 
@@ -146,8 +147,11 @@ npm run build
 - Gateway health: `curl http://localhost/health`
 - AUTH docs (Swagger): `http://localhost/api/v1/auth/docs`
 - CRM docs (Swagger): `http://localhost/api/v1/crm/docs`
+- Customers docs (Swagger): `http://localhost/api/v1/customers/docs`
+- Kafka UI: `http://localhost:8080`
 - Логин (seed-пользователи `admin@crm.local` / `john.doe@example.com`, пароль `admin`):
   `curl -X POST http://localhost/api/v1/auth/login -H 'Content-Type: application/json' -d '{"email":"admin@crm.local","password":"admin"}'`
+- Demo events: `curl -X POST http://localhost/api/v1/customers/demo/customer-created` и `/customer-updated`
 
 ---
 

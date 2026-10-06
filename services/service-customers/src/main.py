@@ -1,3 +1,5 @@
+import asyncio
+import json
 import logging
 from contextlib import asynccontextmanager
 
@@ -5,8 +7,11 @@ from fastapi import FastAPI, APIRouter
 
 from src.dependencies.db_dependency import db_dependency
 from src.dao.outbox_dao import OutboxDAO
+from src.kafka.consumer import customer_events_consumer
+from src.kafka.event_stream import event_stream
 from src.kafka.relay import OutboxRelay
 from src.routes.customer import router as customers_router
+from src.routes.demo import router as demo_router
 
 from .settings import settings
 
@@ -27,23 +32,24 @@ async def lifespan(app: FastAPI):
     logger.info(f"Schema Registry: {settings.kafka.schema_registry_url}")
 
     try:
-        # Запуск Outbox Relay
-        logger.info("Initializing OutboxRelay...")
+        logger.info("Initializing Kafka components...")
         outbox_dao = OutboxDAO(db_dependency)
         relay = OutboxRelay(outbox_dao)
 
-        logger.info("Starting OutboxRelay...")
         await relay.start()
         logger.info("✅ OutboxRelay started successfully")
 
+        await customer_events_consumer.start()
+        logger.info("✅ CustomerEventsConsumer started successfully")
+
     except Exception as e:
-        logger.error(f"❌ Failed to start OutboxRelay: {e}", exc_info=True)
+        logger.error(f"❌ Failed to initialize Kafka components: {e}", exc_info=True)
         raise
 
     yield
 
-    # Остановка
-    logger.info("Stopping OutboxRelay...")
+    logger.info("Stopping Kafka components...")
+    await customer_events_consumer.stop()
     if relay:
         await relay.stop()
     logger.info("=== LIFESPAN END ===")
@@ -65,5 +71,28 @@ async def health():
     return {"status": "ok"}
 
 
+@router.get("/events")
+async def customer_events():
+    """SSE-поток клиентских событий Kafka в реальном времени."""
+    from fastapi.responses import StreamingResponse
+
+    async def event_generator():
+        queue: asyncio.Queue[dict] = asyncio.Queue()
+
+        async def subscriber(event):
+            await queue.put(event)
+
+        unsubscribe = event_stream.subscribe(subscriber)
+        try:
+            while True:
+                payload = await queue.get()
+                yield f"data: {json.dumps(payload, default=str)}\n\n"
+        finally:
+            unsubscribe()
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
 app.include_router(router)
+app.include_router(demo_router)
 app.include_router(customers_router)
