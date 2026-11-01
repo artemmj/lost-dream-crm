@@ -5,11 +5,11 @@
 > **⚠️ ACTIVE DEVELOPMENT WARNING — Проект находится в стадии активной разработки.**
 
 lost-dream-crm — микросервисная CRM-система. Архитектура построена на слабосвязанных доменах с изолированным хранением персональных данных.
-Проект реализует стек FastAPI, Kafka и Vue.js с применением паттернов событийно-ориентированного взаимодействия.
+Проект реализует стек FastAPI, RabbitMQ и Vue.js с применением паттернов событийно-ориентированного взаимодействия.
 
 ## 🏗 Архитектура
 
-- **Privacy by Design:** Сервис `customers-service` полностью изолирован. PII-данные шифруются at-rest и никогда не передаются по REST/gRPC напрямую. Обмен только через зашифрованные события Kafka.
+- **Privacy by Design:** Сервис `customers-service` полностью изолирован. PII-данные шифруются at-rest и никогда не передаются по REST/gRPC напрямую. Обмен только через зашифрованные события RabbitMQ.
 - **Eventual Consistency:** Использование Transactional Outbox Pattern гарантирует атомарность бизнес-операций и доставки событий (без 2PC).
 - **Real-Time First:** Фронтенд получает обновления метрик и статусов через WebSocket Gateway, подписанный на поток событий (не polling).
 - **Infrastructure as Code:** Весь стек поднимается одной командой.
@@ -19,7 +19,7 @@ lost-dream-crm — микросервисная CRM-система. Архите
 | Слой | Технологии |
 | :--- | :--- |
 | **Backend Core** | Python 3.13, FastAPI, SQLAlchemy 2.0 (Async), Pydantic V2 |
-| **Message Broker** | Apache Kafka, Schema Registry (Avro), Outbox Pattern — **В работе** |
+| **Message Broker** | Apache RabbitMQ, Schema Registry (Avro), Outbox Pattern — **В работе** |
 | **Frontend** | Vue 3, Refine Framework, Recharts, Pinia — **Refine в работе** |
 | **Data & Cache** | PostgreSQL 18, Redis 7 |
 | **DevOps / Infra** | Docker Compose, Nginx, Testcontainers, Prometheus + Grafana — **В работе** |
@@ -39,7 +39,7 @@ cp services/service-customers/.env.example services/service-customers/.env
 # Запуск всей инфраструктуры и сервисов
 make up
 
-# Открыть Kafka UI для мониторинга событий
+# Открыть RabbitMQ UI для мониторинга событий
 open http://localhost:8080
 
 # Открыть Frontend
@@ -48,12 +48,12 @@ open http://localhost:3000
 
 ### Демонстрационный поток событий
 
-В `service-customers` предусмотрен live-демо поток для проверки Kafka, Schema Registry, consumer и SSE:
+В `service-customers` предусмотрен live-демо поток для проверки RabbitMQ, Schema Registry, consumer и SSE:
 
 ```text
 POST /api/v1/customers/demo/customer-created
     ↓
-Kafka topic: customer.events.v1
+RabbitMQ topic: customer.events.v1
     ↓
 Schema Registry: Avro-схема + Confluent Wire Format
     ↓
@@ -66,7 +66,7 @@ GET /api/v1/customers/events (SSE)
 Vue Dashboard
 ```
 
-Ручные события отправляются через Kafka producer с `source=manual`. Дополнительно доступен backend-процесс генерации случайных `customer.created.v1` и `customer.updated.v1` раз в секунду:
+Ручные события отправляются через RabbitMQ producer с `source=manual`. Дополнительно доступен backend-процесс генерации случайных `customer.created.v1` и `customer.updated.v1` раз в секунду:
 
 ```text
 POST /api/v1/customers/demo/auto-stream/start
@@ -76,7 +76,7 @@ GET  /api/v1/customers/demo/auto-stream
 
 Автоматический генератор по умолчанию остановлен и запускается по необходимости. События `source=auto` отображаются отдельной лентой на dashboard.
 
-Каждое demo-событие отправляется только один раз: через Kafka producer, а не напрямую в EventStream. Так обеспечивается единый источник событий для интерфейса и предотвращается дублирование.
+Каждое demo-событие отправляется только один раз: через RabbitMQ producer, а не напрямую в EventStream. Так обеспечивается единый источник событий для интерфейса и предотвращается дублирование.
 
 ## 📋 Статус реализации (Roadmap)
 
@@ -89,9 +89,9 @@ GET  /api/v1/customers/demo/auto-stream
 - [x] **Nginx API Gateway** — роутинг `/api/v1/auth/*`, `/api/v1/crm/*`, `/api/v1/customers/*` + Vite HMR прокси
 - [x] **Docker Compose** — весь стек одной командой (`make up`), healthchecks БД, volumes для персистентности
 - [x] **Alembic миграции** — автогенерация, seed тестовых пользователей (`admin@crm.local` / `admin`)
-- [x] **Kafka + Schema Registry (Avro)** — событийная шина для межсервисного взаимодействия
+- [x] **RabbitMQ + Schema Registry (Avro)** — событийная шина для межсервисного взаимодействия
 - [x] **Transactional Outbox Pattern** — гарантированная доставка событий без 2PC
-- [x] **Демонстрационный Kafka-поток** — синтетические события `customer.created.v1` и `customer.updated.v1` проходят через Kafka, Schema Registry, consumer и попадают в live SSE-поток фронтенда
+- [x] **Демонстрационный RabbitMQ-поток** — синтетические события `customer.created.v1` и `customer.updated.v1` проходят через RabbitMQ, Schema Registry, consumer и попадают в live SSE-поток фронтенда
 
 ### 🚧 В работе (ближайшие итерации)
 
